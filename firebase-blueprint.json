@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "Database of underprivileged patients using the free ambulance service",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama": { "type": "string" },
+        "nik": { "type": "string" },
+        "alamat": { "type": "string" },
+        "telepon": { "type": "string" },
+        "kontakDarurat": { "type": "string" },
+        "kategoriStatus": { "type": "string" },
+        "catatanMedis": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["nama", "alamat", "telepon", "kategoriStatus"]
+    },
+    "Trip": {
+      "title": "Trip",
+      "description": "Ambulance emergency and non-emergency transport trips",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "namaPasien": { "type": "string" },
+        "tujuan": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "supir": { "type": "string" },
+        "pendamping": { "type": "string" },
+        "kmSebelum": { "type": "number" },
+        "kmSesudah": { "type": "number" },
+        "status": { "type": "string", "enum": ["dalam_perjalanan", "selesai", "batal"] },
+        "catatan": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["namaPasien", "tujuan", "tanggal", "supir", "kmSebelum", "status"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Financial expenses recorded for ambulance operations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tripId": { "type": "string" },
+        "kategori": { "type": "string", "enum": ["bensin", "tol", "makan", "servis_ambulance", "lainnya"] },
+        "jumlah": { "type": "number" },
+        "keterangan": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["kategori", "jumlah", "keterangan", "tanggal"]
+    }
+  },
+  "firestore": {
+    "patients": {
+      "schema": "Patient",
+      "description": "Collection of patients"
+    },
+    "trips": {
+      "schema": "Trip",
+      "description": "Collection of ambulance trips"
+    },
+    "expenses": {
+      "schema": "Expense",
+      "description": "Collection of operational expenses"
+    }
+  }
+}

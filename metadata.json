@@ -1,0 +1,6 @@
+{
+  "name": "Ambulance Laskar Peduli Sesama",
+  "description": "Sistem manajemen database pengguna, tujuan perjalanan, odometer (kilometer), dan biaya operasional untuk layanan ambulance gratis Yayasan Laskar Peduli Sesama.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
