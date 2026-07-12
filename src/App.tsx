@@ -31,7 +31,6 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Firestore States
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -110,8 +109,11 @@ export default function App() {
     { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
     { id: 'patients', label: 'Database Pengguna', icon: Users },
     { id: 'trips', label: 'Log Perjalanan', icon: Compass },
-    { id: 'expenses', label: 'Log Pengeluaran', icon: DollarSign },
   ];
+
+  if (currentUser.role !== 'staff') {
+    menuItems.push({ id: 'expenses', label: 'Log Pengeluaran', icon: DollarSign });
+  }
 
   if (currentUser.role === 'admin') {
     menuItems.push({ id: 'users', label: 'Manajemen Pengguna', icon: Shield });
@@ -130,26 +132,29 @@ export default function App() {
       <div className="bg-white/60 backdrop-blur-md border-b border-white/40 px-4 py-3 flex md:hidden items-center justify-between shadow-sm sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-red-600 rounded-lg text-white shadow-md shadow-red-200">
-            <HeartHandshake className="h-5 w-5" />
+            <HeartHandshake className="h-4.5 w-4.5" />
           </div>
-          <span className="font-bold text-slate-900 font-display text-sm tracking-tight">
-            Laskar Peduli Sesama
-          </span>
+          <div>
+            <span className="font-extrabold text-slate-900 font-display text-xs tracking-tight block">
+              Laskar Peduli Sesama
+            </span>
+            <span className="text-[9px] font-bold text-slate-500 block leading-none mt-0.5">
+              {currentUser.role === 'admin' ? 'Administrator' : 'Staff Lapangan'} ({currentUser.name})
+            </span>
+          </div>
         </div>
         <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-1.5 text-slate-600 hover:bg-white/50 rounded-lg transition-colors"
+          onClick={handleLogout}
+          className="p-1.5 text-slate-500 hover:text-red-600 bg-white/80 hover:bg-red-50 rounded-xl transition-all border border-slate-200/50 flex items-center gap-1 text-[10px] font-black"
+          title="Keluar"
         >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Keluar</span>
         </button>
       </div>
 
-      {/* Sidebar Navigation */}
-      <aside
-        className={`fixed inset-y-0 left-0 transform ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 md:static transition-transform duration-300 ease-in-out z-30 w-64 bg-white/40 backdrop-blur-2xl border-r border-white/40 flex flex-col justify-between shadow-lg md:shadow-none h-full relative`}
-      >
+      {/* Sidebar Navigation (Desktop only) */}
+      <aside className="hidden md:flex md:flex-col justify-between w-64 bg-white/40 backdrop-blur-2xl border-r border-white/40 h-screen sticky top-0 z-30 shadow-none">
         <div className="flex flex-col flex-grow">
           {/* Brand Logo */}
           <div className="px-6 py-6 border-b border-white/30 flex items-center gap-3">
@@ -174,10 +179,7 @@ export default function App() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id as TabType);
-                    setMobileMenuOpen(false);
-                  }}
+                  onClick={() => setActiveTab(item.id as TabType)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                     isActive
                       ? 'bg-white/60 backdrop-blur-md text-blue-700 border border-white/50 shadow-sm shadow-blue-100'
@@ -225,7 +227,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Pane */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 overflow-hidden">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 overflow-hidden pb-24 md:pb-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -238,13 +240,14 @@ export default function App() {
               <Dashboard
                 patients={patients}
                 trips={trips}
-                expenses={expenses}
                 onNavigate={(tab) => setActiveTab(tab)}
               />
             )}
             {activeTab === 'patients' && <PatientManager patients={patients} />}
             {activeTab === 'trips' && <TripManager trips={trips} patients={patients} />}
-            {activeTab === 'expenses' && <ExpenseManager expenses={expenses} trips={trips} />}
+            {activeTab === 'expenses' && currentUser.role !== 'staff' && (
+              <ExpenseManager expenses={expenses} trips={trips} currentUser={currentUser} />
+            )}
             {activeTab === 'users' && currentUser.role === 'admin' && (
               <UserManager currentUser={currentUser} />
             )}
@@ -252,13 +255,32 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Menu Backdrop */}
-      {mobileMenuOpen && (
-        <div
-          onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-20 md:hidden"
-        ></div>
-      )}
+      {/* Mobile Bottom Navigation Bar (Android Friendly) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200/50 flex md:hidden justify-around items-center py-2 px-2 z-40 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] rounded-t-2xl">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as TabType)}
+              className="flex flex-col items-center justify-center flex-1 py-1 px-1 relative transition-all duration-200"
+            >
+              <div className={`p-1.5 rounded-xl transition-all duration-200 ${isActive ? 'bg-red-50 text-red-600 scale-110' : 'text-slate-500'}`}>
+                <Icon className="h-4.5 w-4.5" />
+              </div>
+              <span className={`text-[9px] font-bold mt-1 tracking-tight transition-colors duration-200 ${isActive ? 'text-red-700 font-black' : 'text-slate-400'}`}>
+                {item.label}
+              </span>
+              {item.id === 'trips' && trips.filter((t) => t.status === 'dalam_perjalanan').length > 0 && (
+                <span className="absolute top-1.5 right-4 bg-amber-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full animate-pulse">
+                  {trips.filter((t) => t.status === 'dalam_perjalanan').length}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
