@@ -26,9 +26,10 @@ import { motion, AnimatePresence } from 'motion/react';
 interface TripManagerProps {
   trips: Trip[];
   patients: Patient[];
+  userRole?: string;
 }
 
-export default function TripManager({ trips, patients }: TripManagerProps) {
+export default function TripManager({ trips, patients, userRole }: TripManagerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -251,13 +252,15 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
             Catat dan monitor pergerakan ambulance, odometer awal/akhir, supir, serta tujuan darurat.
           </p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-200 shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Berangkatkan Ambulance</span>
-        </button>
+        {userRole !== 'staff' && (
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-200 shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Berangkatkan Ambulance</span>
+          </button>
+        )}
       </div>
 
       {/* Stats Quick Summary */}

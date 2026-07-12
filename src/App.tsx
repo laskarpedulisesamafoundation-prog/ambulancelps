@@ -178,8 +178,8 @@ export default function App() {
       >
         <div className="flex flex-col flex-grow">
           {/* Brand Logo */}
-          <div className="px-6 py-6 border-b border-white/30 flex items-center gap-3">
-            <div className="h-16 w-16 flex items-center justify-center overflow-hidden">
+          <div className="px-5 py-6 border-b border-white/30 flex items-center gap-1.5">
+            <div className="h-20 w-20 flex items-center justify-center overflow-hidden shrink-0">
               <img 
                 src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
                 alt="Logo Laskar Peduli Sesama" 
@@ -188,11 +188,11 @@ export default function App() {
               />
             </div>
             <div>
-              <h2 className="font-extrabold text-slate-900 font-display text-sm leading-none tracking-tight">
-                LASKAR PEDULI
+              <h2 className="font-extrabold text-slate-900 font-display text-[13px] leading-tight tracking-tight">
+                LASKAR PEDULI SESAMA
               </h2>
-              <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest mt-1 block">
-                SESAMA AMBULANCE
+              <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5 block">
+                AMBULANCE GRATIS
               </span>
             </div>
           </div>
@@ -287,7 +287,9 @@ export default function App() {
               />
             )}
             {activeTab === 'patients' && <PatientManager patients={patients} />}
-            {activeTab === 'trips' && <TripManager trips={trips} patients={patients} />}
+            {activeTab === 'trips' && (
+              <TripManager trips={trips} patients={patients} userRole={currentUser.role} />
+            )}
             {activeTab === 'expenses' && currentUser.role !== 'staff' && (
               <ExpenseManager expenses={expenses} trips={trips} />
             )}
