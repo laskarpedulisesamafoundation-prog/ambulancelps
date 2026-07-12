@@ -18,11 +18,12 @@ async function testConnection() {
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.log("Firebase connection verified");
   } catch (error: any) {
-    if (error && error.message && error.message.includes('offline')) {
-      console.error("Firebase connection is offline. Please check your network and configuration.");
+    console.warn("Firebase connection test details:", error);
+    if (error && error.message && (error.message.includes('offline') || error.code === 'unavailable')) {
+      console.error("Firebase connection is offline. Please check your network, Firebase Console settings, or check if the database exists in project " + firebaseConfig.projectId + ".");
     } else {
       // Permission denied is expected on boot without authentication and is normal behavior
-      console.log("Firebase initialized");
+      console.log("Firebase initialized (connection test returned: " + (error.message || error.code || error) + ")");
     }
   }
 }
