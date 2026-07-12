@@ -421,8 +421,13 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
         <div className="absolute left-1/3 bottom-0 translate-y-12 w-48 h-48 bg-emerald-200/20 rounded-full blur-2xl"></div>
 
         <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600/10 text-red-700 border border-red-200/30 rounded-full text-xs font-semibold">
-            <HeartHandshake className="h-3.5 w-3.5 text-red-600" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/10 text-red-700 border border-red-200/30 rounded-full text-xs font-semibold">
+            <img 
+              src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
+              alt="LPS Logo" 
+              className="h-7 w-7 object-contain mix-blend-multiply"
+              referrerPolicy="no-referrer"
+            />
             <span>Laskar Peduli Sesama - Penggerak Kebaikan</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold font-display tracking-tight text-slate-900 leading-tight">

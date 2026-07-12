@@ -139,8 +139,13 @@ export default function App() {
       {/* Mobile Top Bar */}
       <div className="bg-white/60 backdrop-blur-md border-b border-white/40 px-4 py-3 flex md:hidden items-center justify-between shadow-sm sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-red-600 rounded-lg text-white shadow-md shadow-red-200">
-            <HeartHandshake className="h-5 w-5" />
+          <div className="h-12 w-12 flex items-center justify-center overflow-hidden">
+            <img 
+              src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
+              alt="LPS" 
+              className="h-full w-full object-contain mix-blend-multiply"
+              referrerPolicy="no-referrer"
+            />
           </div>
           <span className="font-bold text-slate-900 font-display text-sm tracking-tight">
             Laskar Peduli Sesama
@@ -178,8 +183,13 @@ export default function App() {
         <div className="flex flex-col flex-grow">
           {/* Brand Logo */}
           <div className="px-6 py-6 border-b border-white/30 flex items-center gap-3">
-            <div className="h-10 w-10 bg-red-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-200">
-              <HeartHandshake className="h-6 w-6" />
+            <div className="h-16 w-16 flex items-center justify-center overflow-hidden">
+              <img 
+                src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
+                alt="Logo Laskar Peduli Sesama" 
+                className="h-full w-full object-contain mix-blend-multiply"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
               <h2 className="font-extrabold text-slate-900 font-display text-sm leading-none tracking-tight">

@@ -92,8 +92,13 @@ export default function Auth({ onSuccess }: AuthProps) {
       >
         <div>
           <div className="flex justify-center">
-            <div className="h-16 w-16 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-red-200">
-              <HeartHandshake className="h-9 w-9" />
+            <div className="h-32 w-32 flex items-center justify-center overflow-hidden">
+              <img 
+                src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
+                alt="Logo Laskar Peduli Sesama" 
+                className="h-full w-full object-contain mix-blend-multiply"
+                referrerPolicy="no-referrer"
+              />
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold font-display tracking-tight text-slate-900 leading-tight">
