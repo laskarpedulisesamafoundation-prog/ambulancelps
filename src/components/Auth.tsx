@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
-import { seedDefaultUsersIfEmpty } from '../dbService';
+import { seedDefaultUsersIfEmpty, subscribeAppUsers } from '../dbService';
 import { AppUser } from '../types';
-import { KeyRound, User, HeartHandshake, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { KeyRound, User, HeartHandshake, ShieldAlert, CheckCircle2, Shield, Users, UserCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface AuthProps {
@@ -16,10 +16,34 @@ export default function Auth({ onSuccess }: AuthProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Seed default credentials on load
+  // Seed default credentials on load and subscribe to user list
   useEffect(() => {
-    seedDefaultUsersIfEmpty();
+    let unsubscribe: (() => void) | undefined;
+    
+    const init = async () => {
+      await seedDefaultUsersIfEmpty();
+      unsubscribe = subscribeAppUsers((usersList) => {
+        // Sort users so admin is first, then manager/manajer, then staff
+        const sorted = [...usersList].sort((a, b) => {
+          const roleOrder = { admin: 1, manager: 2, manajer: 2, staff: 3 };
+          const roleA = roleOrder[a.role as keyof typeof roleOrder] || 4;
+          const roleB = roleOrder[b.role as keyof typeof roleOrder] || 4;
+          return roleA - roleB;
+        });
+        setUsers(sorted);
+      });
+    };
+
+    init();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,6 +148,73 @@ export default function Auth({ onSuccess }: AuthProps) {
             </div>
           )}
 
+          {/* Quick-Select Profile Section */}
+          {users.length > 0 && (
+            <div className="space-y-2.5 bg-slate-100/40 border border-slate-200/35 p-3.5 rounded-2xl">
+              <p className="block text-[11px] font-extrabold text-slate-500 uppercase px-1 flex items-center justify-between">
+                <span>Pilih Profil Akses</span>
+                <span className="text-[10px] text-slate-400 normal-case font-bold">Pilih lalu ketik password</span>
+              </p>
+              <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-0.5">
+                {users.map((u) => {
+                  const isSelected = username.trim().toLowerCase() === u.username.toLowerCase();
+                  
+                  // Style colors based on roles
+                  let roleBadgeColor = "bg-blue-50 text-blue-700 border-blue-200/55";
+                  let avatarBg = "bg-blue-600/10 text-blue-700 border-blue-200/55";
+                  if (u.role === 'admin') {
+                    roleBadgeColor = "bg-red-50 text-red-700 border-red-200/55";
+                    avatarBg = "bg-red-600/10 text-red-700 border-red-200/55";
+                  } else if (u.role === 'manajer' || u.role === 'manager') {
+                    roleBadgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200/55";
+                    avatarBg = "bg-emerald-600/10 text-emerald-700 border-emerald-200/55";
+                  }
+
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => {
+                        setUsername(u.username);
+                        setSelectedUserId(u.id);
+                        // Safely focus the password input
+                        setTimeout(() => {
+                          const pwdInput = document.getElementById('password-input');
+                          if (pwdInput) {
+                            pwdInput.focus();
+                          }
+                        }, 50);
+                      }}
+                      className={`flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all cursor-pointer relative ${
+                        isSelected 
+                          ? 'bg-white border-blue-500 shadow-md ring-2 ring-blue-400/20 scale-[1.03]' 
+                          : 'bg-white/70 hover:bg-white border-slate-200/60 hover:border-slate-300 shadow-sm'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-1.5 right-1.5">
+                          <UserCheck className="h-3 w-3 text-blue-600" />
+                        </div>
+                      )}
+                      
+                      <div className={`h-9 w-9 rounded-full border flex items-center justify-center font-extrabold text-xs mb-1.5 shadow-inner ${avatarBg}`}>
+                        {u.name.charAt(0).toUpperCase()}
+                      </div>
+                      
+                      <span className="text-[10px] font-extrabold text-slate-800 line-clamp-1 leading-none mb-1 w-full">
+                        {u.name}
+                      </span>
+                      
+                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border leading-none shrink-0 ${roleBadgeColor}`}>
+                        {u.role === 'admin' ? 'Admin' : u.role === 'manajer' || u.role === 'manager' ? 'Manajer' : 'Staff'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
             <div>
               <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
@@ -137,7 +228,10 @@ export default function Auth({ onSuccess }: AuthProps) {
                   type="text"
                   required
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setSelectedUserId(null);
+                  }}
                   className="block w-full pl-10 pr-3 py-3 bg-white/80 border border-white/50 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
                   placeholder="Contoh: admin atau staff"
                   autoComplete="username"
@@ -154,6 +248,7 @@ export default function Auth({ onSuccess }: AuthProps) {
                   <KeyRound className="h-4 w-4" />
                 </div>
                 <input
+                  id="password-input"
                   type="password"
                   required
                   value={password}
