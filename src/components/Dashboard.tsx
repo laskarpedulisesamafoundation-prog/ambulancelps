@@ -16,6 +16,7 @@ import {
   Phone,
   Tag,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import {
   BarChart,
@@ -39,15 +40,24 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [supir, setSupir] = useState('');
   const [pendamping, setPendamping] = useState('');
-  const [kmSebelum, setKmSebelum] = useState<number | ''>('');
+  const [kmSebelum, setKmSebelum] = useState<any>('');
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
 
-  // Expense form states
-  const [expKategori, setExpKategori] = useState<'bensin' | 'tol' | 'makan' | 'servis_ambulance' | 'lainnya'>('bensin');
-  const [expNominal, setExpNominal] = useState<any>('');
-  const [expKeterangan, setExpKeterangan] = useState('');
+  // Active tab inside Staff Dashboard:
+  // 'perjalanan' (ambulance trip registration + optional expenses list with Add/Remove)
+  // 'mandiri' (standalone expenses registration without patient/trip + optional expenses list with Add/Remove)
+  const [staffTab, setStaffTab] = useState<'perjalanan' | 'mandiri'>('perjalanan');
+
+  // Dynamic expenses for trip-associated form
+  const [tripExpenses, setTripExpenses] = useState<Array<{ kategori: 'bensin' | 'tol' | 'makan' | 'servis_ambulance' | 'lainnya'; jumlah: any; keterangan: string }>>([]);
+
+  // Standalone expenses states
+  const [standaloneTanggal, setStandaloneTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [standaloneExpenses, setStandaloneExpenses] = useState<Array<{ kategori: 'bensin' | 'tol' | 'makan' | 'servis_ambulance' | 'lainnya'; jumlah: any; keterangan: string }>>([
+    { kategori: 'bensin', jumlah: '', keterangan: '' }
+  ]);
 
   const handlePatientSelect = (id: string) => {
     setPatientId(id);
@@ -63,7 +73,35 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAddTripExpense = () => {
+    setTripExpenses([...tripExpenses, { kategori: 'bensin', jumlah: '', keterangan: '' }]);
+  };
+
+  const handleRemoveTripExpense = (index: number) => {
+    setTripExpenses(tripExpenses.filter((_, i) => i !== index));
+  };
+
+  const handleTripExpenseChange = (index: number, field: string, value: any) => {
+    const updated = [...tripExpenses];
+    updated[index] = { ...updated[index], [field]: value };
+    setTripExpenses(updated);
+  };
+
+  const handleAddStandaloneExpense = () => {
+    setStandaloneExpenses([...standaloneExpenses, { kategori: 'bensin', jumlah: '', keterangan: '' }]);
+  };
+
+  const handleRemoveStandaloneExpense = (index: number) => {
+    setStandaloneExpenses(standaloneExpenses.filter((_, i) => i !== index));
+  };
+
+  const handleStandaloneExpenseChange = (index: number, field: string, value: any) => {
+    const updated = [...standaloneExpenses];
+    updated[index] = { ...updated[index], [field]: value };
+    setStandaloneExpenses(updated);
+  };
+
+  const handleSubmitTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!namaPasien || !tujuan || !tanggal || !supir || kmSebelum === '') {
       alert('Mohon lengkapi semua field wajib!');
@@ -87,22 +125,76 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
 
       const createdTrip = await addTrip(payload);
 
-      // Save expense if nominal is entered!
-      if (expNominal !== '' && Number(expNominal) > 0) {
-        await addExpense({
-          tripId: createdTrip.id,
-          namaPasien: payload.namaPasien,
-          kategori: expKategori,
-          jumlah: Number(expNominal),
-          keterangan: expKeterangan || `Pengeluaran ${expKategori} untuk perjalanan ke ${payload.tujuan}`,
-          tanggal: payload.tanggal,
-        });
+      // Save trip-associated expenses
+      let savedCount = 0;
+      for (const exp of tripExpenses) {
+        if (exp.jumlah !== '' && Number(exp.jumlah) > 0) {
+          await addExpense({
+            tripId: createdTrip.id,
+            namaPasien: payload.namaPasien,
+            kategori: exp.kategori,
+            jumlah: Number(exp.jumlah),
+            keterangan: exp.keterangan || `Pengeluaran ${exp.kategori} untuk perjalanan ke ${payload.tujuan}`,
+            tanggal: payload.tanggal,
+          });
+          savedCount++;
+        }
       }
 
-      setSuccessData(payload);
+      setSuccessData({
+        type: 'perjalanan',
+        namaPasien: payload.namaPasien,
+        tujuan: payload.tujuan,
+        supir: payload.supir,
+        kmSebelum: payload.kmSebelum,
+        expenseCount: savedCount,
+      });
     } catch (err) {
       console.error(err);
       alert('Gagal mencatat keberangkatan ambulance.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitStandalone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Filter to valid expenses (having positive amounts)
+    const validExpenses = standaloneExpenses.filter((exp) => exp.jumlah !== '' && Number(exp.jumlah) > 0);
+    if (validExpenses.length === 0) {
+      alert('Mohon masukkan minimal satu pengeluaran dengan nominal di atas Rp 0!');
+      return;
+    }
+
+    // Validate descriptions for standalone
+    const hasEmptyDesc = validExpenses.some(exp => !exp.keterangan || exp.keterangan.trim() === '');
+    if (hasEmptyDesc) {
+      alert('Mohon isi keterangan detail untuk setiap pengeluaran!');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      for (const exp of validExpenses) {
+        await addExpense({
+          kategori: exp.kategori,
+          jumlah: Number(exp.jumlah),
+          keterangan: exp.keterangan,
+          tanggal: standaloneTanggal,
+          namaPasien: 'Operasional Mandiri', // standalone indicator
+        });
+      }
+
+      setSuccessData({
+        type: 'mandiri',
+        tanggal: standaloneTanggal,
+        expenseCount: validExpenses.length,
+        totalAmount: validExpenses.reduce((sum, item) => sum + Number(item.jumlah), 0),
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menyimpan pengeluaran mandiri.');
     } finally {
       setIsSubmitting(false);
     }
@@ -118,10 +210,18 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
     setPendamping('');
     setKmSebelum('');
     setCatatan('');
-    setExpKategori('bensin');
-    setExpNominal('');
-    setExpKeterangan('');
+    setTripExpenses([]);
+    setStandaloneExpenses([{ kategori: 'bensin', jumlah: '', keterangan: '' }]);
+    setStandaloneTanggal(new Date().toISOString().split('T')[0]);
     setSuccessData(null);
+  };
+
+  const formatIDR = (num: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(num);
   };
 
   if (successData) {
@@ -134,34 +234,65 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-slate-800 font-display">Keberangkatan Berhasil Dicatat!</h2>
-          <p className="text-xs text-slate-400">Ambulance sedang aktif dalam operasional perjalanan.</p>
+          <h2 className="text-xl font-bold text-slate-800 font-display">
+            {successData.type === 'perjalanan' ? 'Keberangkatan Berhasil Dicatat!' : 'Pengeluaran Berhasil Dicatat!'}
+          </h2>
+          <p className="text-xs text-slate-400">
+            {successData.type === 'perjalanan'
+              ? 'Ambulance sedang aktif dalam operasional perjalanan.'
+              : 'Data pengeluaran operasional mandiri telah disimpan ke sistem.'}
+          </p>
         </div>
 
         <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-3 border border-slate-100 text-sm">
-          <div className="flex justify-between">
-            <span className="text-slate-400 text-xs">Pasien</span>
-            <span className="font-bold text-slate-700">{successData.namaPasien}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-400 text-xs">Tujuan</span>
-            <span className="font-bold text-slate-700 text-right max-w-[200px] truncate">{successData.tujuan}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-400 text-xs">Supir / Driver</span>
-            <span className="font-bold text-slate-700">{successData.supir}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-400 text-xs">Odometer Awal</span>
-            <span className="font-mono font-bold text-slate-700">{successData.kmSebelum.toLocaleString('id-ID')} KM</span>
-          </div>
+          {successData.type === 'perjalanan' ? (
+            <>
+              <div className="flex justify-between">
+                <span className="text-slate-400 text-xs">Pasien</span>
+                <span className="font-bold text-slate-700">{successData.namaPasien}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 text-xs">Tujuan</span>
+                <span className="font-bold text-slate-700 text-right max-w-[200px] truncate">{successData.tujuan}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 text-xs">Supir / Driver</span>
+                <span className="font-bold text-slate-700">{successData.supir}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 text-xs">Odometer Awal</span>
+                <span className="font-mono font-bold text-slate-700">{Number(successData.kmSebelum).toLocaleString('id-ID')} KM</span>
+              </div>
+              {successData.expenseCount > 0 && (
+                <div className="flex justify-between border-t border-slate-100 pt-2 mt-1">
+                  <span className="text-slate-400 text-xs">Pengeluaran Dicatat</span>
+                  <span className="font-bold text-emerald-600">{successData.expenseCount} Item</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between">
+                <span className="text-slate-400 text-xs">Tanggal Log</span>
+                <span className="font-bold text-slate-700">{successData.tanggal}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 text-xs">Jumlah Pengeluaran</span>
+                <span className="font-bold text-slate-700">{successData.expenseCount} Item</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-100 pt-2 mt-1">
+                <span className="text-slate-400 text-xs">Total Nominal</span>
+                <span className="font-mono font-bold text-red-600">{formatIDR(successData.totalAmount)}</span>
+              </div>
+            </>
+          )}
         </div>
 
         <button
           onClick={handleReset}
           className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-red-100"
         >
-          Catat Keberangkatan Lain
+          {successData.type === 'perjalanan' ? 'Catat Keberangkatan Lain' : 'Catat Pengeluaran Lain'}
         </button>
       </div>
     );
@@ -169,231 +300,413 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
 
   return (
     <div className="max-w-md mx-auto space-y-6">
-      <div className="flex items-center gap-3 bg-red-600 text-white p-4 rounded-3xl shadow-lg shadow-red-100">
-        <div className="p-2 bg-white/20 rounded-xl">
-          <Truck className="h-6 w-6" />
+      {/* Header card with dual tabs */}
+      <div className="bg-red-600 text-white p-5 rounded-3xl shadow-lg shadow-red-100 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-xl">
+            <Truck className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold font-display leading-none">Operasional Relawan LPS</h1>
+            <p className="text-[10px] text-red-100 font-medium mt-1">Sistem Pelaporan Ambulans & Pengeluaran</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-lg font-bold font-display leading-none">Keberangkatan Ambulance</h1>
-          <p className="text-[10px] text-red-100 font-medium mt-1">Formulir Log Operasional Relawan LPS</p>
+
+        {/* Tab switch */}
+        <div className="grid grid-cols-2 p-1 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => setStaffTab('perjalanan')}
+            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              staffTab === 'perjalanan'
+                ? 'bg-white text-red-600 shadow-sm'
+                : 'text-white hover:text-red-100'
+            }`}
+          >
+            <Truck className="h-3.5 w-3.5" />
+            <span>Perjalanan</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStaffTab('mandiri')}
+            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              staffTab === 'mandiri'
+                ? 'bg-white text-red-600 shadow-sm'
+                : 'text-white hover:text-red-100'
+            }`}
+          >
+            <DollarSign className="h-3.5 w-3.5" />
+            <span>Pengeluaran Mandiri</span>
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-5 space-y-5">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Select Patient */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Pilih dari Database Pengguna <span className="text-slate-400 lowercase font-normal">(opsional)</span>
-            </label>
-            <select
-              value={patientId}
-              onChange={(e) => handlePatientSelect(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner font-medium text-slate-700"
-            >
-              <option value="">-- Pilih Pengguna Terdaftar --</option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nama} ({p.alamat.substring(0, 20)}...)
-                </option>
-              ))}
-              <option value="custom">-- Ketik Nama Manual --</option>
-            </select>
-          </div>
-
-          {/* Manual Patient Name */}
-          {(patientId === 'custom' || patientId === '') && (
+      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-5">
+        {staffTab === 'perjalanan' ? (
+          <form onSubmit={handleSubmitTrip} className="space-y-4">
+            {/* Choose Patient dropdown */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-                Nama Pasien / Pengguna <span className="text-red-500">*</span>
+                Pilih dari Database Pengguna <span className="text-slate-400 lowercase font-normal">(opsional)</span>
+              </label>
+              <select
+                value={patientId}
+                onChange={(e) => handlePatientSelect(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner font-medium text-slate-700"
+              >
+                <option value="">-- Pilih Pengguna Terdaftar --</option>
+                {patients.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nama} ({p.alamat.substring(0, 20)}...)
+                  </option>
+                ))}
+                <option value="custom">-- Ketik Nama Manual --</option>
+              </select>
+            </div>
+
+            {/* Manual Patient Name if custom or empty */}
+            {(patientId === 'custom' || patientId === '') && (
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                  Nama Pasien / Pengguna <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={namaPasien}
+                  onChange={(e) => setNamaPasien(e.target.value)}
+                  placeholder="Contoh: Ibu Rahma"
+                  className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+                />
+              </div>
+            )}
+
+            {/* Patient Phone Number */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Nomor Telepon Pasien / Pengguna {patientId === 'custom' && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                required={patientId === 'custom'}
+                value={telepon}
+                onChange={(e) => setTelepon(e.target.value)}
+                placeholder="Contoh: 081234567890"
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
+
+            {/* Tanggal Perjalanan */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Tanggal Perjalanan <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={tanggal}
+                onChange={(e) => setTanggal(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
+
+            {/* Odometer Berangkat */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Odometer Berangkat (KM) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                value={kmSebelum}
+                onChange={(e) => setKmSebelum(e.target.value !== '' ? Number(e.target.value) : '')}
+                placeholder="Contoh: 124500"
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner font-mono text-slate-800"
+              />
+            </div>
+
+            {/* Nama Supir */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Nama Supir <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
-                value={namaPasien}
-                onChange={(e) => setNamaPasien(e.target.value)}
-                placeholder="Contoh: Ibu Rahma"
+                value={supir}
+                onChange={(e) => setSupir(e.target.value)}
+                placeholder="Supir bertugas"
                 className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
               />
             </div>
-          )}
 
-          {/* Patient Phone Number */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Nomor Telepon Pasien / Pengguna {patientId === 'custom' && <span className="text-red-500">*</span>}
-            </label>
-            <input
-              type="text"
-              required={patientId === 'custom'}
-              value={telepon}
-              onChange={(e) => setTelepon(e.target.value)}
-              placeholder="Contoh: 081234567890"
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-            />
-          </div>
-
-          {/* Tanggal Perjalanan */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Tanggal Perjalanan <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              required
-              value={tanggal}
-              onChange={(e) => setTanggal(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-            />
-          </div>
-
-          {/* Odometer Berangkat */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Odometer Berangkat (KM) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              required
-              value={kmSebelum}
-              onChange={(e) => setKmSebelum(e.target.value !== '' ? Number(e.target.value) : '')}
-              placeholder="Contoh: 124500"
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner font-mono text-slate-800"
-            />
-          </div>
-
-          {/* Nama Supir */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Nama Supir <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={supir}
-              onChange={(e) => setSupir(e.target.value)}
-              placeholder="Supir bertugas"
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-            />
-          </div>
-
-          {/* Nama Pendamping */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Nama Pendamping <span className="text-slate-400 lowercase font-normal">(opsional)</span>
-            </label>
-            <input
-              type="text"
-              value={pendamping}
-              onChange={(e) => setPendamping(e.target.value)}
-              placeholder="Keluarga atau Staff Medis"
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-            />
-          </div>
-
-          {/* RS / Klinik / Alamat Tujuan */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Rumah Sakit / Klinik / Alamat Tujuan <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={tujuan}
-              onChange={(e) => setTujuan(e.target.value)}
-              placeholder="Contoh: RSUD Dr. Soetomo"
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-            />
-          </div>
-
-          {/* Catatan Perjalanan */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-              Catatan Khusus <span className="text-slate-400 lowercase font-normal">(opsional)</span>
-            </label>
-            <textarea
-              value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
-              placeholder="Contoh: Perlu tabung oksigen tambahan"
-              rows={3}
-              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-            />
-          </div>
-
-          {/* Pengeluaran Terkait Section */}
-          <div className="border-t border-slate-100 pt-4 space-y-4">
-            <div className="flex items-center gap-2 text-slate-500">
-              <DollarSign className="h-4 w-4 text-slate-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider">Catat Pengeluaran Perjalanan (Opsional)</h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-                  Kategori Pengeluaran
-                </label>
-                <select
-                  value={expKategori}
-                  onChange={(e) => setExpKategori(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner font-medium text-slate-700"
-                >
-                  <option value="bensin">Bahan Bakar (Bensin)</option>
-                  <option value="tol">Biaya Jalan Tol</option>
-                  <option value="makan">Konsumsi Crew/Supir</option>
-                  <option value="servis_ambulance">Servis / Perawatan Ambulance</option>
-                  <option value="lainnya">Lain-lain</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-                  Nominal Pengeluaran (Rp)
-                </label>
-                <input
-                  type="number"
-                  value={expNominal}
-                  onChange={(e) => setExpNominal(e.target.value !== '' ? Number(e.target.value) : '')}
-                  placeholder="Contoh: 150000"
-                  className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
-                />
-              </div>
-            </div>
-
+            {/* Nama Pendamping */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-                Keterangan Detail Pengeluaran
+                Nama Pendamping <span className="text-slate-400 lowercase font-normal">(opsional)</span>
               </label>
               <input
                 type="text"
-                value={expKeterangan}
-                onChange={(e) => setExpKeterangan(e.target.value)}
-                placeholder="Contoh: Pembelian bensin Pertalite 15 liter"
+                value={pendamping}
+                onChange={(e) => setPendamping(e.target.value)}
+                placeholder="Keluarga atau Staff Medis"
                 className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
               />
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-red-100 flex items-center justify-center gap-2 ${
-              isSubmitting ? 'opacity-85 cursor-not-allowed' : ''
-            }`}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Menyimpan...</span>
-              </>
-            ) : (
-              <>
-                <Truck className="h-5 w-5" />
-                <span>Berangkatkan Ambulance</span>
-              </>
-            )}
-          </button>
-        </form>
+            {/* RS / Klinik / Alamat Tujuan */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Rumah Sakit / Klinik / Alamat Tujuan <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={tujuan}
+                onChange={(e) => setTujuan(e.target.value)}
+                placeholder="Contoh: RSUD Dr. Soetomo"
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
+
+            {/* Catatan Perjalanan */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Catatan Khusus <span className="text-slate-400 lowercase font-normal">(opsional)</span>
+              </label>
+              <textarea
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
+                placeholder="Contoh: Perlu tabung oksigen tambahan"
+                rows={3}
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
+
+            {/* Dynamic Associated Expenses List with "Tambah +" */}
+            <div className="border-t border-slate-100 pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <DollarSign className="h-4 w-4 text-slate-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider">Catat Pengeluaran (Opsional)</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddTripExpense}
+                  className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Tambah +</span>
+                </button>
+              </div>
+
+              {tripExpenses.length === 0 ? (
+                <div className="text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <p className="text-xs text-slate-400 font-medium">Belum ada pengeluaran tambahan.</p>
+                  <button
+                    type="button"
+                    onClick={handleAddTripExpense}
+                    className="text-xs text-red-500 hover:text-red-600 font-bold mt-1 inline-flex items-center gap-1"
+                  >
+                    <Plus className="h-3 w-3" /> Klik untuk menambahkan
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4 bg-slate-50/50 rounded-2xl p-3 border border-slate-100">
+                  {tripExpenses.map((exp, index) => (
+                    <div key={index} className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm relative space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Pengeluaran #{index + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTripExpense(index)}
+                          className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-slate-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Kategori</label>
+                          <select
+                            value={exp.kategori}
+                            onChange={(e) => handleTripExpenseChange(index, 'kategori', e.target.value)}
+                            className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500/10 text-slate-700 font-semibold"
+                          >
+                            <option value="bensin">Bensin / Solar</option>
+                            <option value="tol">Jalan Tol</option>
+                            <option value="makan">Makan / Konsumsi</option>
+                            <option value="servis_ambulance">Servis Ambulans</option>
+                            <option value="lainnya">Lain-lain</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Nominal (Rp)</label>
+                          <input
+                            type="number"
+                            required
+                            placeholder="150000"
+                            value={exp.jumlah}
+                            onChange={(e) => handleTripExpenseChange(index, 'jumlah', e.target.value !== '' ? Number(e.target.value) : '')}
+                            className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500/10 text-slate-800 font-mono font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Keterangan</label>
+                        <input
+                          type="text"
+                          placeholder="cth: Isi Pertalite 15 liter"
+                          value={exp.keterangan}
+                          onChange={(e) => handleTripExpenseChange(index, 'keterangan', e.target.value)}
+                          className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500/10 text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button for Trip */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-red-100 flex items-center justify-center gap-2 ${
+                isSubmitting ? 'opacity-85 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <Truck className="h-5 w-5" />
+                  <span>Berangkatkan Ambulance</span>
+                </>
+              )}
+            </button>
+          </form>
+        ) : (
+          /* Standalone Expenses form (no patient name required!) */
+          <form onSubmit={handleSubmitStandalone} className="space-y-4">
+            {/* Tanggal Pengeluaran */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Tanggal Pengeluaran <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={standaloneTanggal}
+                onChange={(e) => setStandaloneTanggal(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
+
+            {/* Dynamic List of Standalone Expenses */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <DollarSign className="h-4 w-4 text-slate-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider">Daftar Pengeluaran Mandiri</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddStandaloneExpense}
+                  className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Tambah +</span>
+                </button>
+              </div>
+
+              <div className="space-y-4 bg-slate-50/50 rounded-2xl p-3 border border-slate-100">
+                {standaloneExpenses.map((exp, index) => (
+                  <div key={index} className="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm relative space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Pengeluaran #{index + 1}</span>
+                      {standaloneExpenses.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStandaloneExpense(index)}
+                          className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-slate-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Kategori <span className="text-red-500">*</span></label>
+                        <select
+                          value={exp.kategori}
+                          onChange={(e) => handleStandaloneExpenseChange(index, 'kategori', e.target.value)}
+                          className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500/10 text-slate-700 font-semibold"
+                        >
+                          <option value="bensin">Bensin / Solar</option>
+                          <option value="tol">Jalan Tol</option>
+                          <option value="makan">Makan / Konsumsi</option>
+                          <option value="servis_ambulance">Servis Ambulans</option>
+                          <option value="lainnya">Lain-lain</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Nominal (Rp) <span className="text-red-500">*</span></label>
+                        <input
+                          type="number"
+                          required
+                          placeholder="150000"
+                          value={exp.jumlah}
+                          onChange={(e) => handleStandaloneExpenseChange(index, 'jumlah', e.target.value !== '' ? Number(e.target.value) : '')}
+                          className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500/10 text-slate-800 font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Keterangan <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="cth: Pembelian bensin Pertalite di luar perjalanan pasien"
+                        value={exp.keterangan}
+                        onChange={(e) => handleStandaloneExpenseChange(index, 'keterangan', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-red-500/10 text-slate-800"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit Button for Standalone */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-red-100 flex items-center justify-center gap-2 ${
+                isSubmitting ? 'opacity-85 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <DollarSign className="h-5 w-5" />
+                  <span>Catat Pengeluaran Mandiri</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
