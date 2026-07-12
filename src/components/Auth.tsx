@@ -148,72 +148,7 @@ export default function Auth({ onSuccess }: AuthProps) {
             </div>
           )}
 
-          {/* Quick-Select Profile Section */}
-          {users.length > 0 && (
-            <div className="space-y-2.5 bg-slate-100/40 border border-slate-200/35 p-3.5 rounded-2xl">
-              <p className="block text-[11px] font-extrabold text-slate-500 uppercase px-1 flex items-center justify-between">
-                <span>Pilih Profil Akses</span>
-                <span className="text-[10px] text-slate-400 normal-case font-bold">Pilih lalu ketik password</span>
-              </p>
-              <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-0.5">
-                {users.map((u) => {
-                  const isSelected = username.trim().toLowerCase() === u.username.toLowerCase();
-                  
-                  // Style colors based on roles
-                  let roleBadgeColor = "bg-blue-50 text-blue-700 border-blue-200/55";
-                  let avatarBg = "bg-blue-600/10 text-blue-700 border-blue-200/55";
-                  if (u.role === 'admin') {
-                    roleBadgeColor = "bg-red-50 text-red-700 border-red-200/55";
-                    avatarBg = "bg-red-600/10 text-red-700 border-red-200/55";
-                  } else if (u.role === 'manajer' || u.role === 'manager') {
-                    roleBadgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200/55";
-                    avatarBg = "bg-emerald-600/10 text-emerald-700 border-emerald-200/55";
-                  }
 
-                  return (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => {
-                        setUsername(u.username);
-                        setSelectedUserId(u.id);
-                        // Safely focus the password input
-                        setTimeout(() => {
-                          const pwdInput = document.getElementById('password-input');
-                          if (pwdInput) {
-                            pwdInput.focus();
-                          }
-                        }, 50);
-                      }}
-                      className={`flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all cursor-pointer relative ${
-                        isSelected 
-                          ? 'bg-white border-blue-500 shadow-md ring-2 ring-blue-400/20 scale-[1.03]' 
-                          : 'bg-white/70 hover:bg-white border-slate-200/60 hover:border-slate-300 shadow-sm'
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute top-1.5 right-1.5">
-                          <UserCheck className="h-3 w-3 text-blue-600" />
-                        </div>
-                      )}
-                      
-                      <div className={`h-9 w-9 rounded-full border flex items-center justify-center font-extrabold text-xs mb-1.5 shadow-inner ${avatarBg}`}>
-                        {u.name.charAt(0).toUpperCase()}
-                      </div>
-                      
-                      <span className="text-[10px] font-extrabold text-slate-800 line-clamp-1 leading-none mb-1 w-full">
-                        {u.name}
-                      </span>
-                      
-                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border leading-none shrink-0 ${roleBadgeColor}`}>
-                        {u.role === 'admin' ? 'Admin' : u.role === 'manajer' || u.role === 'manager' ? 'Manajer' : 'Staff'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div className="space-y-3">
             <div>
@@ -270,23 +205,72 @@ export default function Auth({ onSuccess }: AuthProps) {
           </button>
         </form>
 
-        {/* Informative Helper Panel */}
-        <div className="bg-blue-500/5 border border-blue-200/30 rounded-2xl p-4 space-y-2 text-xs text-slate-600 text-center">
-          <p className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Default Akses Sistem</p>
-          <div className="flex justify-around text-[11px] gap-2">
-            <div>
-              <p className="font-bold text-red-600">Admin Account</p>
-              <p className="font-semibold text-slate-500">User: <code className="bg-slate-100 px-1 rounded font-mono">admin</code></p>
-              <p className="font-semibold text-slate-500">Sandi: <code className="bg-slate-100 px-1 rounded font-mono">admin123</code></p>
-            </div>
-            <div className="border-r border-slate-200"></div>
-            <div>
-              <p className="font-bold text-blue-600">Staff Account</p>
-              <p className="font-semibold text-slate-500">User: <code className="bg-slate-100 px-1 rounded font-mono">staff</code></p>
-              <p className="font-semibold text-slate-500">Sandi: <code className="bg-slate-100 px-1 rounded font-mono">staff123</code></p>
+        {/* Quick-Select Profile Section as replacement for Default Akses Sistem */}
+        {users.length > 0 && (
+          <div className="space-y-2.5 bg-slate-100/40 border border-slate-200/35 p-3.5 rounded-2xl">
+            <p className="block text-[11px] font-extrabold text-slate-500 uppercase px-1 flex items-center justify-between">
+              <span>Pilih Profil Akses</span>
+              <span className="text-[10px] text-slate-400 normal-case font-bold">Pilih lalu ketik password</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-0.5">
+              {users.map((u) => {
+                const isSelected = username.trim().toLowerCase() === u.username.toLowerCase();
+                
+                // Style colors based on roles
+                let roleBadgeColor = "bg-blue-50 text-blue-700 border-blue-200/55";
+                let avatarBg = "bg-blue-600/10 text-blue-700 border-blue-200/55";
+                if (u.role === 'admin') {
+                  roleBadgeColor = "bg-red-50 text-red-700 border-red-200/55";
+                  avatarBg = "bg-red-600/10 text-red-700 border-red-200/55";
+                } else if (u.role === 'manajer' || u.role === 'manager') {
+                  roleBadgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200/55";
+                  avatarBg = "bg-emerald-600/10 text-emerald-700 border-emerald-200/55";
+                }
+
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      setUsername(u.username);
+                      setSelectedUserId(u.id);
+                      // Safely focus the password input
+                      setTimeout(() => {
+                        const pwdInput = document.getElementById('password-input');
+                        if (pwdInput) {
+                          pwdInput.focus();
+                        }
+                      }, 50);
+                    }}
+                    className={`flex flex-col items-center justify-between p-2 rounded-2xl border text-center transition-all cursor-pointer relative ${
+                      isSelected 
+                        ? 'bg-white border-blue-500 shadow-md ring-2 ring-blue-400/20 scale-[1.03]' 
+                        : 'bg-white/70 hover:bg-white border-slate-200/60 hover:border-slate-300 shadow-sm'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-1.5 right-1.5">
+                        <UserCheck className="h-3 w-3 text-blue-600" />
+                      </div>
+                    )}
+                    
+                    <div className={`h-8 w-8 rounded-full border flex items-center justify-center font-extrabold text-[11px] mb-1 shadow-inner ${avatarBg}`}>
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                    
+                    <span className="text-[10px] font-extrabold text-slate-800 line-clamp-1 leading-none mb-1 w-full">
+                      {u.name}
+                    </span>
+                    
+                    <span className={`text-[8px] font-extrabold px-1 py-0.5 rounded-full border leading-none shrink-0 ${roleBadgeColor}`}>
+                      {u.role === 'admin' ? 'Admin' : u.role === 'manajer' || u.role === 'manager' ? 'Manajer' : 'Staff'}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
 
         <div className="text-center text-[10px] text-slate-400 font-medium">
           Sistem Keamanan Terintegrasi & Terkoneksi Real-time Firestore Cloud
