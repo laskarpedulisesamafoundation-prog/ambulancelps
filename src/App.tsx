@@ -178,8 +178,8 @@ export default function App() {
       >
         <div className="flex flex-col flex-grow">
           {/* Brand Logo */}
-          <div className="px-5 py-6 border-b border-white/30 flex items-center gap-1.5">
-            <div className="h-20 w-20 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="px-4 py-6 border-b border-white/30 flex items-center gap-2">
+            <div className="h-24 w-24 flex items-center justify-center overflow-hidden shrink-0">
               <img 
                 src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
                 alt="Logo Laskar Peduli Sesama" 
@@ -188,10 +188,10 @@ export default function App() {
               />
             </div>
             <div>
-              <h2 className="font-extrabold text-slate-900 font-display text-[13px] leading-tight tracking-tight">
+              <h2 className="font-extrabold text-slate-900 font-display text-[15px] leading-tight tracking-tight">
                 LASKAR PEDULI SESAMA
               </h2>
-              <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5 block">
+              <span className="text-[11px] font-bold text-red-600 uppercase tracking-wider mt-0.5 block">
                 AMBULANCE GRATIS
               </span>
             </div>
