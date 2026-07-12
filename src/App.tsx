@@ -41,8 +41,10 @@ export default function App() {
   // 1. Listen to Authentication State (from localStorage)
   useEffect(() => {
     const initAuth = async () => {
-      // Seed default accounts
-      await seedDefaultUsersIfEmpty();
+      // Seed default accounts in background so it does not block the application boot
+      seedDefaultUsersIfEmpty().catch((err) => {
+        console.error('Error seeding users:', err);
+      });
 
       const savedUserStr = localStorage.getItem('laskar_peduli_user');
       if (savedUserStr) {
