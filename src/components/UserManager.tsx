@@ -31,7 +31,7 @@ export default function UserManager({ currentUser }: UserManagerProps) {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'staff'>('staff');
+  const [role, setRole] = useState<'admin' | 'staff' | 'manajer' | 'manager'>('staff');
   const [showPassword, setShowPassword] = useState(false);
 
   // Status message states
@@ -216,6 +216,8 @@ export default function UserManager({ currentUser }: UserManagerProps) {
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm border shadow-inner ${
                           user.role === 'admin' 
                             ? 'bg-red-500/10 text-red-700 border-red-200/30' 
+                            : user.role === 'manajer' || user.role === 'manager'
+                            ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200/30'
                             : 'bg-blue-500/10 text-blue-700 border-blue-200/30'
                         }`}>
                           {user.name.charAt(0)}
@@ -244,6 +246,11 @@ export default function UserManager({ currentUser }: UserManagerProps) {
                         <span className="inline-flex items-center gap-1 bg-red-500/10 text-red-700 border border-red-200/30 px-2.5 py-1 rounded-full text-xs font-bold">
                           <Shield className="h-3 w-3" />
                           Administrator
+                        </span>
+                      ) : user.role === 'manajer' || user.role === 'manager' ? (
+                        <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-700 border border-emerald-200/30 px-2.5 py-1 rounded-full text-xs font-bold">
+                          <Users className="h-3 w-3" />
+                          Manajer
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 bg-blue-500/10 text-blue-700 border border-blue-200/30 px-2.5 py-1 rounded-full text-xs font-bold">
@@ -387,10 +394,11 @@ export default function UserManager({ currentUser }: UserManagerProps) {
                       </label>
                       <select
                         value={role}
-                        onChange={(e) => setRole(e.target.value as 'admin' | 'staff')}
+                        onChange={(e) => setRole(e.target.value as 'admin' | 'staff' | 'manajer' | 'manager')}
                         className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-bold text-slate-800"
                       >
                         <option value="staff">Staff Lapangan</option>
+                        <option value="manajer">Manajer</option>
                         <option value="admin">Administrator</option>
                       </select>
                     </div>

@@ -92,7 +92,7 @@ export default function Auth({ onSuccess }: AuthProps) {
       >
         <div>
           <div className="flex justify-center">
-            <div className="h-32 w-32 flex items-center justify-center overflow-hidden">
+            <div className="h-44 w-44 flex items-center justify-center overflow-hidden">
               <img 
                 src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
                 alt="Logo Laskar Peduli Sesama" 
@@ -101,7 +101,7 @@ export default function Auth({ onSuccess }: AuthProps) {
               />
             </div>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold font-display tracking-tight text-slate-900 leading-tight">
+          <h2 className="mt-2 text-center text-3xl font-extrabold font-display tracking-tight text-slate-900 leading-tight">
             LASKAR PEDULI<br /><span className="text-red-600">SESAMA</span>
           </h2>
           <p className="mt-2 text-center text-xs uppercase tracking-widest text-slate-500 font-semibold max-w-xs mx-auto">

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   TrendingUp,
   CheckCircle,
+  Calendar,
 } from 'lucide-react';
 import {
   BarChart,
@@ -314,15 +315,30 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
     return <StaffDashboard patients={patients} />;
   }
 
-  // 1. Calculate general stats
-  const totalPatients = patients.length;
-  const activeTripsCount = trips.filter((t) => t.status === 'dalam_perjalanan').length;
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
 
-  const totalKm = trips
+  // Filter collections based on selectedPeriod (specifically for manager and other non-staff roles)
+  const filteredPatients = selectedPeriod === 'all' 
+    ? patients 
+    : patients.filter(p => p.createdAt && p.createdAt.substring(0, 7) === selectedPeriod);
+
+  const filteredTrips = selectedPeriod === 'all'
+    ? trips
+    : trips.filter(t => t.tanggal && t.tanggal.substring(0, 7) === selectedPeriod);
+
+  const filteredExpenses = selectedPeriod === 'all'
+    ? expenses
+    : expenses.filter(e => e.tanggal && e.tanggal.substring(0, 7) === selectedPeriod);
+
+  // 1. Calculate general stats
+  const totalPatients = filteredPatients.length;
+  const activeTripsCount = filteredTrips.filter((t) => t.status === 'dalam_perjalanan').length;
+
+  const totalKm = filteredTrips
     .filter((t) => t.status === 'selesai' && t.kmSesudah)
     .reduce((acc, curr) => acc + ((curr.kmSesudah || 0) - curr.kmSebelum), 0);
 
-  const totalExpenseAmount = expenses.reduce((acc, curr) => acc + curr.jumlah, 0);
+  const totalExpenseAmount = filteredExpenses.reduce((acc, curr) => acc + curr.jumlah, 0);
 
   // Helper for IDR
   const formatIDR = (num: number) => {
@@ -342,7 +358,7 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
     lainnya: { label: 'Lainnya', value: 0, color: '#64748b' },
   };
 
-  expenses.forEach((e) => {
+  filteredExpenses.forEach((e) => {
     if (expenseCategories[e.kategori]) {
       expenseCategories[e.kategori].value += e.jumlah;
     } else {
@@ -361,7 +377,7 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
   // 3. Prepare charts data: Recent trips distance or volume by date
   // Let's summarize distance for completed trips by date (grouped)
   const distanceByDateMap: Record<string, number> = {};
-  trips
+  filteredTrips
     .filter((t) => t.status === 'selesai' && t.kmSesudah)
     .forEach((t) => {
       const dist = (t.kmSesudah || 0) - t.kmSebelum;
@@ -380,13 +396,13 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
 
   // 4. Combine recent activities
   const recentActivities = [
-    ...patients.map((p) => ({
+    ...filteredPatients.map((p) => ({
       type: 'patient',
       title: `Pengguna baru terdaftar: ${p.nama}`,
       date: p.createdAt,
       color: 'bg-blue-50 text-blue-600',
     })),
-    ...trips.map((t) => ({
+    ...filteredTrips.map((t) => ({
       type: 'trip',
       title:
         t.status === 'dalam_perjalanan'
@@ -402,7 +418,7 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
           ? 'bg-emerald-50 text-emerald-600'
           : 'bg-slate-100 text-slate-500',
     })),
-    ...expenses.map((e) => ({
+    ...filteredExpenses.map((e) => ({
       type: 'expense',
       title: `Log pengeluaran ${e.keterangan} (${formatIDR(e.jumlah)})`,
       date: e.createdAt,
@@ -452,6 +468,43 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
           </div>
         </div>
       </div>
+
+      {/* Periode Laporan (Hanya untuk Role Manajer / Manager dan Admin) */}
+      {(userRole === 'manajer' || userRole === 'manager' || userRole === 'admin') && (
+        <div className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-3xl p-5 shadow-xl shadow-slate-200/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-red-50 text-red-600 rounded-2xl border border-red-100">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 font-display">Periode Laporan Bulanan</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Saring semua data operasional, jarak tempuh, dan pengeluaran</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+            <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Pilih Bulan & Tahun (2026):</span>
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="w-full sm:w-48 px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-400/50 transition-all text-slate-700 shadow-sm"
+            >
+              <option value="all">Semua (Seluruh Periode)</option>
+              <option value="2026-01">Januari 2026</option>
+              <option value="2026-02">Februari 2026</option>
+              <option value="2026-03">Maret 2026</option>
+              <option value="2026-04">April 2026</option>
+              <option value="2026-05">Mei 2026</option>
+              <option value="2026-06">Juni 2026</option>
+              <option value="2026-07">Juli 2026</option>
+              <option value="2026-08">Agustus 2026</option>
+              <option value="2026-09">September 2026</option>
+              <option value="2026-10">Oktober 2026</option>
+              <option value="2026-11">November 2026</option>
+              <option value="2026-12">Desember 2026</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Main stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

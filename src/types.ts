@@ -40,7 +40,7 @@ export interface AppUser {
   id: string;
   username: string;
   password?: string; // stored in plaintext or masked for simple local security
-  role: 'admin' | 'staff';
+  role: 'admin' | 'staff' | 'manajer' | 'manager';
   name: string;
   createdAt: string;
 }

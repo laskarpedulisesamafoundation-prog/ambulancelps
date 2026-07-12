@@ -244,7 +244,13 @@ export default function App() {
               </p>
               <span className="text-[9px] font-semibold text-slate-500 truncate block mt-0.5 flex items-center gap-0.5">
                 <Shield className="h-2.5 w-2.5 text-red-500" />
-                <span>{currentUser.role === 'admin' ? 'Administrator' : 'Staff Lapangan'}</span>
+                <span>
+                  {currentUser.role === 'admin' 
+                    ? 'Administrator' 
+                    : currentUser.role === 'manajer' || currentUser.role === 'manager' 
+                    ? 'Manajer' 
+                    : 'Staff Lapangan'}
+                </span>
               </span>
             </div>
           </div>
