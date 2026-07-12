@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { auth } from './firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { subscribePatients, subscribeTrips, subscribeExpenses } from './dbService';
-import { Patient, Trip, Expense } from './types';
+import { subscribePatients, subscribeTrips, subscribeExpenses, seedDefaultUsersIfEmpty } from './dbService';
+import { Patient, Trip, Expense, AppUser } from './types';
 
 // Components
 import Auth from './components/Auth';
@@ -10,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import PatientManager from './components/PatientManager';
 import TripManager from './components/TripManager';
 import ExpenseManager from './components/ExpenseManager';
+import UserManager from './components/UserManager';
 
 // Icons
 import {
@@ -26,10 +25,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type TabType = 'dashboard' | 'patients' | 'trips' | 'expenses';
+type TabType = 'dashboard' | 'patients' | 'trips' | 'expenses' | 'users';
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,18 +38,31 @@ export default function App() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  // 1. Listen to Authentication State
+  // 1. Listen to Authentication State (from localStorage)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
+    const initAuth = async () => {
+      // Seed default accounts
+      await seedDefaultUsersIfEmpty();
+
+      const savedUserStr = localStorage.getItem('laskar_peduli_user');
+      if (savedUserStr) {
+        try {
+          const savedUser = JSON.parse(savedUserStr) as AppUser;
+          setCurrentUser(savedUser);
+        } catch (e) {
+          console.error('Failed to parse saved user:', e);
+          localStorage.removeItem('laskar_peduli_user');
+        }
+      }
       setAuthChecking(false);
-    });
-    return unsubscribe;
+    };
+
+    initAuth();
   }, []);
 
   // 2. Real-time Database Subscriptions
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser) return;
 
     const unsubPatients = subscribePatients((data) => setPatients(data));
     const unsubTrips = subscribeTrips((data) => setTrips(data));
@@ -61,11 +73,13 @@ export default function App() {
       unsubTrips();
       unsubExpenses();
     };
-  }, [user]);
+  }, [currentUser]);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (confirm('Apakah Anda yakin ingin keluar dari sistem?')) {
-      await signOut(auth);
+      localStorage.removeItem('laskar_peduli_user');
+      setCurrentUser(null);
+      setActiveTab('dashboard');
     }
   };
 
@@ -82,8 +96,11 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return <Auth onSuccess={() => {}} />;
+  if (!currentUser) {
+    return <Auth onSuccess={(user) => {
+      setCurrentUser(user);
+      localStorage.setItem('laskar_peduli_user', JSON.stringify(user));
+    }} />;
   }
 
   // Sidebar navigation menu items
@@ -93,6 +110,10 @@ export default function App() {
     { id: 'trips', label: 'Log Perjalanan', icon: Compass },
     { id: 'expenses', label: 'Log Pengeluaran', icon: DollarSign },
   ];
+
+  if (currentUser.role === 'admin') {
+    menuItems.push({ id: 'users', label: 'Manajemen Pengguna', icon: Shield });
+  }
 
   return (
     <div className="min-h-screen bg-[#f0f4f8] flex flex-col md:flex-row relative z-10 overflow-x-hidden font-sans">
@@ -178,15 +199,15 @@ export default function App() {
         <div className="p-4 border-t border-white/30 bg-white/20 backdrop-blur-md space-y-3">
           <div className="flex items-center gap-2.5 px-2">
             <div className="h-8 w-8 bg-white/60 text-slate-700 rounded-full flex items-center justify-center font-bold text-xs uppercase shadow-inner border border-white/50">
-              {user.email ? user.email.charAt(0) : <UserIcon className="h-4 w-4" />}
+              {currentUser.name ? currentUser.name.charAt(0) : <UserIcon className="h-4 w-4" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-slate-800 truncate leading-none">
-                {user.email ? user.email.split('@')[0] : 'Demo Staff'}
+                {currentUser.name}
               </p>
               <span className="text-[9px] font-semibold text-slate-500 truncate block mt-0.5 flex items-center gap-0.5">
                 <Shield className="h-2.5 w-2.5 text-red-500" />
-                <span>Petugas Lapangan</span>
+                <span>{currentUser.role === 'admin' ? 'Administrator' : 'Staff Lapangan'}</span>
               </span>
             </div>
           </div>
@@ -222,6 +243,9 @@ export default function App() {
             {activeTab === 'patients' && <PatientManager patients={patients} />}
             {activeTab === 'trips' && <TripManager trips={trips} patients={patients} />}
             {activeTab === 'expenses' && <ExpenseManager expenses={expenses} trips={trips} />}
+            {activeTab === 'users' && currentUser.role === 'admin' && (
+              <UserManager currentUser={currentUser} />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

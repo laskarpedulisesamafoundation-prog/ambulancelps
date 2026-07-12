@@ -11,12 +11,13 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Patient, Trip, Expense } from './types';
+import { Patient, Trip, Expense, AppUser } from './types';
 
 // Collection references
 const patientsCol = collection(db, 'patients');
 const tripsCol = collection(db, 'trips');
 const expensesCol = collection(db, 'expenses');
+const appUsersCol = collection(db, 'app_users');
 
 // ==========================================
 // PATIENT (PENGGUNA) SERVICES
@@ -143,3 +144,70 @@ export async function deleteExpense(id: string) {
   const ref = doc(db, 'expenses', id);
   await deleteDoc(ref);
 }
+
+// ==========================================
+// APP USER (PENGGUNA SYSTEM) SERVICES
+// ==========================================
+
+export function subscribeAppUsers(callback: (users: AppUser[]) => void) {
+  const q = query(appUsersCol, orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: AppUser[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as AppUser);
+      });
+      callback(list);
+    },
+    (error) => {
+      console.error('Error subscribing to app_users:', error);
+    }
+  );
+}
+
+export async function addAppUser(user: Omit<AppUser, 'id' | 'createdAt'>) {
+  const newId = doc(appUsersCol).id;
+  const data: AppUser = {
+    ...user,
+    id: newId,
+    createdAt: new Date().toISOString(),
+  };
+  await setDoc(doc(db, 'app_users', newId), data);
+  return data;
+}
+
+export async function updateAppUser(id: string, updates: Partial<Omit<AppUser, 'id' | 'createdAt'>>) {
+  const ref = doc(db, 'app_users', id);
+  await updateDoc(ref, updates);
+}
+
+export async function deleteAppUser(id: string) {
+  const ref = doc(db, 'app_users', id);
+  await deleteDoc(ref);
+}
+
+// Seed default accounts if none exist (admin / admin123, staff / staff123)
+export async function seedDefaultUsersIfEmpty() {
+  try {
+    const snapshot = await getDocs(appUsersCol);
+    if (snapshot.empty) {
+      console.log('No app users found in Firestore. Seeding default Admin and Staff accounts...');
+      await addAppUser({
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin',
+        name: 'Administrator'
+      });
+      await addAppUser({
+        username: 'staff',
+        password: 'staff123',
+        role: 'staff',
+        name: 'Staff Lapangan'
+      });
+    }
+  } catch (err) {
+    console.error('Error seeding default users:', err);
+  }
+}
+
