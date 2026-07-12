@@ -40,6 +40,22 @@ export function subscribePatients(callback: (patients: Patient[]) => void) {
   );
 }
 
+// Helper to remove undefined values recursively so Firestore doesn't throw errors
+function cleanUndefined<T extends object>(obj: T): T {
+  const clean: any = {};
+  Object.keys(obj).forEach((key) => {
+    const val = (obj as any)[key];
+    if (val !== undefined) {
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        clean[key] = cleanUndefined(val);
+      } else {
+        clean[key] = val;
+      }
+    }
+  });
+  return clean as T;
+}
+
 export async function addPatient(patient: Omit<Patient, 'id' | 'createdAt'>) {
   const newId = doc(patientsCol).id;
   const data: Patient = {
@@ -47,13 +63,13 @@ export async function addPatient(patient: Omit<Patient, 'id' | 'createdAt'>) {
     id: newId,
     createdAt: new Date().toISOString(),
   };
-  await setDoc(doc(db, 'patients', newId), data);
+  await setDoc(doc(db, 'patients', newId), cleanUndefined(data));
   return data;
 }
 
 export async function updatePatient(id: string, updates: Partial<Omit<Patient, 'id' | 'createdAt'>>) {
   const ref = doc(db, 'patients', id);
-  await updateDoc(ref, updates);
+  await updateDoc(ref, cleanUndefined(updates));
 }
 
 export async function deletePatient(id: string) {
@@ -89,13 +105,13 @@ export async function addTrip(trip: Omit<Trip, 'id' | 'createdAt'>) {
     id: newId,
     createdAt: new Date().toISOString(),
   };
-  await setDoc(doc(db, 'trips', newId), data);
+  await setDoc(doc(db, 'trips', newId), cleanUndefined(data));
   return data;
 }
 
 export async function updateTrip(id: string, updates: Partial<Omit<Trip, 'id' | 'createdAt'>>) {
   const ref = doc(db, 'trips', id);
-  await updateDoc(ref, updates);
+  await updateDoc(ref, cleanUndefined(updates));
 }
 
 export async function deleteTrip(id: string) {
@@ -131,13 +147,13 @@ export async function addExpense(expense: Omit<Expense, 'id' | 'createdAt'>) {
     id: newId,
     createdAt: new Date().toISOString(),
   };
-  await setDoc(doc(db, 'expenses', newId), data);
+  await setDoc(doc(db, 'expenses', newId), cleanUndefined(data));
   return data;
 }
 
 export async function updateExpense(id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt'>>) {
   const ref = doc(db, 'expenses', id);
-  await updateDoc(ref, updates);
+  await updateDoc(ref, cleanUndefined(updates));
 }
 
 export async function deleteExpense(id: string) {
@@ -173,13 +189,13 @@ export async function addAppUser(user: Omit<AppUser, 'id' | 'createdAt'>) {
     id: newId,
     createdAt: new Date().toISOString(),
   };
-  await setDoc(doc(db, 'app_users', newId), data);
+  await setDoc(doc(db, 'app_users', newId), cleanUndefined(data));
   return data;
 }
 
 export async function updateAppUser(id: string, updates: Partial<Omit<AppUser, 'id' | 'createdAt'>>) {
   const ref = doc(db, 'app_users', id);
-  await updateDoc(ref, updates);
+  await updateDoc(ref, cleanUndefined(updates));
 }
 
 export async function deleteAppUser(id: string) {
