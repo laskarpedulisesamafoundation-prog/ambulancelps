@@ -100,7 +100,7 @@ export default function Auth({ onSuccess }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8] relative z-10 overflow-hidden px-4 py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen flex items-start justify-center bg-[#f0f4f8] relative z-10 overflow-hidden px-4 pt-6 pb-12 sm:px-6 lg:px-8 font-sans">
       {/* Background Mesh Gradients */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
@@ -112,11 +112,11 @@ export default function Auth({ onSuccess }: AuthProps) {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="max-w-md w-full space-y-8 bg-white/50 backdrop-blur-xl border border-white/50 p-8 rounded-3xl shadow-2xl shadow-slate-200/50 relative z-10"
+        className="max-w-md w-full space-y-4 bg-white/50 backdrop-blur-xl border border-white/50 p-6 sm:p-8 rounded-3xl shadow-2xl shadow-slate-200/50 relative z-10 mt-2 sm:mt-6"
       >
         <div>
           <div className="flex justify-center">
-            <div className="h-56 w-56 flex items-center justify-center overflow-hidden">
+            <div className="h-72 w-72 flex items-center justify-center overflow-hidden">
               <img 
                 src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
                 alt="Logo Laskar Peduli Sesama" 
@@ -125,15 +125,15 @@ export default function Auth({ onSuccess }: AuthProps) {
               />
             </div>
           </div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold font-display tracking-tight text-slate-900 leading-tight">
+          <h2 className="-mt-3 text-center text-3xl font-extrabold font-display tracking-tight text-slate-900 leading-tight">
             LASKAR PEDULI<br /><span className="text-red-600">SESAMA</span>
           </h2>
-          <p className="mt-2 text-center text-xs uppercase tracking-widest text-slate-500 font-semibold max-w-xs mx-auto">
+          <p className="mt-0.5 text-center text-xs uppercase tracking-widest text-slate-500 font-semibold max-w-xs mx-auto">
             Ambulance Fleet Database
           </p>
         </div>
 
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+        <form className="mt-5 space-y-3.5" onSubmit={handleSubmit}>
           {error && (
             <div className="p-3 bg-red-50/75 backdrop-blur-md text-red-700 text-xs rounded-xl border border-red-200/50 flex items-start gap-2 animate-bounce-short">
               <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
