@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Expense, Trip, AppUser } from '../types';
+import { Expense, Trip } from '../types';
 import { addExpense, updateExpense, deleteExpense } from '../dbService';
 import {
   Search,
@@ -19,11 +19,9 @@ import { motion, AnimatePresence } from 'motion/react';
 interface ExpenseManagerProps {
   expenses: Expense[];
   trips: Trip[];
-  currentUser?: AppUser | null;
 }
 
-export default function ExpenseManager({ expenses, trips, currentUser }: ExpenseManagerProps) {
-  const isStaff = currentUser?.role === 'staff';
+export default function ExpenseManager({ expenses, trips }: ExpenseManagerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -149,15 +147,13 @@ export default function ExpenseManager({ expenses, trips, currentUser }: Expense
             Catat dan pantau pengeluaran biaya ambulance seperti bensin, tol, makan tim, dan perawatan mesin.
           </p>
         </div>
-        {!isStaff && (
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-200 shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Input Pengeluaran</span>
-          </button>
-        )}
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-200 shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Input Pengeluaran</span>
+        </button>
       </div>
 
       {/* Stats Summary */}
@@ -256,7 +252,7 @@ export default function ExpenseManager({ expenses, trips, currentUser }: Expense
                   <th className="px-6 py-4">Kategori</th>
                   <th className="px-6 py-4">Koneksi Perjalanan (Pasien)</th>
                   <th className="px-6 py-4 text-right">Jumlah (Rupiah)</th>
-                  {!isStaff && <th className="px-6 py-4 text-right">Aksi</th>}
+                  <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/25 text-sm">
@@ -293,26 +289,24 @@ export default function ExpenseManager({ expenses, trips, currentUser }: Expense
                       <td className="px-6 py-4 text-right font-mono font-bold text-slate-900 text-base">
                         {formatIDR(exp.jumlah)}
                       </td>
-                      {!isStaff && (
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-1">
-                            <button
-                              onClick={() => openEditModal(exp)}
-                              className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(exp.id, exp.keterangan)}
-                              className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
-                              title="Hapus"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      )}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => openEditModal(exp)}
+                            className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(exp.id, exp.keterangan)}
+                            className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
+                            title="Hapus"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
