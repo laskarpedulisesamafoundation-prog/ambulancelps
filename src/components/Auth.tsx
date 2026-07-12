@@ -116,7 +116,7 @@ export default function Auth({ onSuccess }: AuthProps) {
       >
         <div>
           <div className="flex justify-center">
-            <div className="h-44 w-44 flex items-center justify-center overflow-hidden">
+            <div className="h-56 w-56 flex items-center justify-center overflow-hidden">
               <img 
                 src="https://lh3.googleusercontent.com/d/1Rx-hqsNyhgquLdyfEWRmdIelfquZMbef" 
                 alt="Logo Laskar Peduli Sesama" 
