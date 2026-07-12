@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trip, Patient } from '../types';
-import { addTrip, updateTrip, deleteTrip } from '../dbService';
+import { addTrip, updateTrip, deleteTrip, addExpense } from '../dbService';
 import {
   Search,
   Plus,
@@ -18,6 +18,8 @@ import {
   Smile,
   Truck,
   FileText,
+  Phone,
+  DollarSign,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -36,29 +38,42 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
   // Form states
   const [patientId, setPatientId] = useState('');
   const [namaPasien, setNamaPasien] = useState('');
+  const [telepon, setTelepon] = useState('');
   const [tujuan, setTujuan] = useState('');
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [supir, setSupir] = useState('');
   const [pendamping, setPendamping] = useState('');
-  const [kmSebelum, setKmSebelum] = useState<number | ''>('');
-  const [kmSesudah, setKmSesudah] = useState<number | ''>('');
+  const [kmSebelum, setKmSebelum] = useState<any>('');
+  const [kmSesudah, setKmSesudah] = useState<any>('');
   const [status, setStatus] = useState<'dalam_perjalanan' | 'selesai' | 'batal'>('dalam_perjalanan');
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Add Trip Associated Expense states
+  const [addExpKategori, setAddExpKategori] = useState<'bensin' | 'tol' | 'makan' | 'servis_ambulance' | 'lainnya'>('bensin');
+  const [addExpNominal, setAddExpNominal] = useState<any>('');
+  const [addExpKeterangan, setAddExpKeterangan] = useState('');
+
   // Completion states
-  const [finishKm, setFinishKm] = useState<number | ''>('');
+  const [finishKm, setFinishKm] = useState<any>('');
   const [finishCatatan, setFinishCatatan] = useState('');
 
-  // Auto-fill patient name from dropdown
+  // Completion Associated Expense states
+  const [finishExpKategori, setFinishExpKategori] = useState<'bensin' | 'tol' | 'makan' | 'servis_ambulance' | 'lainnya'>('bensin');
+  const [finishExpNominal, setFinishExpNominal] = useState<any>('');
+  const [finishExpKeterangan, setFinishExpKeterangan] = useState('');
+
+  // Auto-fill patient name and phone from dropdown
   const handlePatientSelect = (id: string) => {
     setPatientId(id);
     if (id === 'custom') {
       setNamaPasien('');
+      setTelepon('');
     } else {
       const selected = patients.find((p) => p.id === id);
       if (selected) {
         setNamaPasien(selected.nama);
+        setTelepon(selected.telepon || '');
       }
     }
   };
@@ -77,6 +92,7 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
     setEditingTrip(null);
     setPatientId('');
     setNamaPasien('');
+    setTelepon('');
     setTujuan('');
     setTanggal(new Date().toISOString().split('T')[0]);
     setSupir('');
@@ -85,6 +101,9 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
     setKmSesudah('');
     setStatus('dalam_perjalanan');
     setCatatan('');
+    setAddExpKategori('bensin');
+    setAddExpNominal('');
+    setAddExpKeterangan('');
     setIsModalOpen(true);
   };
 
@@ -92,6 +111,7 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
     setEditingTrip(t);
     setPatientId(t.patientId || 'custom');
     setNamaPasien(t.namaPasien);
+    setTelepon(t.telepon || '');
     setTujuan(t.tujuan);
     setTanggal(t.tanggal);
     setSupir(t.supir);
@@ -107,6 +127,9 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
     setCompletingTrip(t);
     setFinishKm(t.kmSesudah || t.kmSebelum + 10); // auto-suggestion
     setFinishCatatan(t.catatan || '');
+    setFinishExpKategori('bensin');
+    setFinishExpNominal('');
+    setFinishExpKeterangan('');
     setIsCompleteModalOpen(true);
   };
 
@@ -122,6 +145,7 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
       const payload = {
         patientId: patientId === 'custom' ? '' : patientId,
         namaPasien,
+        telepon,
         tujuan,
         tanggal,
         supir,
@@ -135,7 +159,19 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
       if (editingTrip) {
         await updateTrip(editingTrip.id, payload);
       } else {
-        await addTrip(payload);
+        const createdTrip = await addTrip(payload);
+
+        // Add expense if entered
+        if (addExpNominal !== '' && Number(addExpNominal) > 0) {
+          await addExpense({
+            tripId: createdTrip.id,
+            namaPasien: payload.namaPasien,
+            kategori: addExpKategori,
+            jumlah: Number(addExpNominal),
+            keterangan: addExpKeterangan || `Pengeluaran ${addExpKategori} untuk perjalanan ke ${payload.tujuan}`,
+            tanggal: payload.tanggal,
+          });
+        }
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -162,6 +198,19 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
         status: 'selesai',
         catatan: finishCatatan,
       });
+
+      // Add expense if entered during completion!
+      if (finishExpNominal !== '' && Number(finishExpNominal) > 0) {
+        await addExpense({
+          tripId: completingTrip.id,
+          namaPasien: completingTrip.namaPasien,
+          kategori: finishExpKategori,
+          jumlah: Number(finishExpNominal),
+          keterangan: finishExpKeterangan || `Pengeluaran ${finishExpKategori} saat menyelesaikan perjalanan`,
+          tanggal: completingTrip.tanggal,
+        });
+      }
+
       setIsCompleteModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -312,6 +361,12 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
                     <tr key={trip.id} className="hover:bg-white/40 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900">{trip.namaPasien}</div>
+                        {trip.telepon && (
+                          <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
+                            <Phone className="h-3 w-3 text-slate-400" />
+                            <span>{trip.telepon}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
                           <Calendar className="h-3 w-3" />
                           <span>{trip.tanggal}</span>
@@ -490,6 +545,21 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
                     </div>
                   )}
 
+                  {/* Passenger Phone Number */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                      Nomor Telepon Pasien / Pengguna {patientId === 'custom' && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      required={patientId === 'custom'}
+                      value={telepon}
+                      onChange={(e) => setTelepon(e.target.value)}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
@@ -604,6 +674,61 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
                       className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all resize-none shadow-inner"
                     />
                   </div>
+
+                  {/* Optional Associated Expense (only on Add Trip, not edit) */}
+                  {!editingTrip && (
+                    <div className="border-t border-slate-100 pt-3.5 space-y-3">
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <DollarSign className="h-4 w-4 text-slate-400" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Catat Pengeluaran Perjalanan (Opsional)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                            Kategori Pengeluaran
+                          </label>
+                          <select
+                            value={addExpKategori}
+                            onChange={(e) => setAddExpKategori(e.target.value as any)}
+                            className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                          >
+                            <option value="bensin">Bahan Bakar (Bensin)</option>
+                            <option value="tol">Biaya Jalan Tol</option>
+                            <option value="makan">Konsumsi Crew/Supir</option>
+                            <option value="servis_ambulance">Servis / Perawatan Ambulance</option>
+                            <option value="lainnya">Lain-lain</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                            Nominal Pengeluaran (Rp)
+                          </label>
+                          <input
+                            type="number"
+                            value={addExpNominal}
+                            onChange={(e) => setAddExpNominal(e.target.value !== '' ? Number(e.target.value) : '')}
+                            placeholder="Contoh: 150000"
+                            className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                          Keterangan Detail Pengeluaran
+                        </label>
+                        <input
+                          type="text"
+                          value={addExpKeterangan}
+                          onChange={(e) => setAddExpKeterangan(e.target.value)}
+                          placeholder="Contoh: Pembelian bensin Pertalite 15 liter"
+                          className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-white/40 flex justify-end gap-3 bg-white/10 -mx-6 -mb-6 p-6">
@@ -689,6 +814,59 @@ export default function TripManager({ trips, patients }: TripManagerProps) {
                     rows={2}
                     className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all resize-none shadow-inner"
                   />
+                </div>
+
+                {/* Optional Associated Expense on Trip Completion */}
+                <div className="border-t border-slate-100 pt-3.5 space-y-3">
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    <DollarSign className="h-4 w-4 text-slate-400" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Catat Pengeluaran Perjalanan (Opsional)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                        Kategori Pengeluaran
+                      </label>
+                      <select
+                        value={finishExpKategori}
+                        onChange={(e) => setFinishExpKategori(e.target.value as any)}
+                        className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                      >
+                        <option value="bensin">Bahan Bakar (Bensin)</option>
+                        <option value="tol">Biaya Jalan Tol</option>
+                        <option value="makan">Konsumsi Crew/Supir</option>
+                        <option value="servis_ambulance">Servis / Perawatan Ambulance</option>
+                        <option value="lainnya">Lain-lain</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                        Nominal Pengeluaran (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        value={finishExpNominal}
+                        onChange={(e) => setFinishExpNominal(e.target.value !== '' ? Number(e.target.value) : '')}
+                        placeholder="Contoh: 150000"
+                        className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                      Keterangan Detail Pengeluaran
+                    </label>
+                    <input
+                      type="text"
+                      value={finishExpKeterangan}
+                      onChange={(e) => setFinishExpKeterangan(e.target.value)}
+                      placeholder="Contoh: Pembelian bensin Pertalite 15 liter"
+                      className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner font-semibold text-slate-800"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-white/40 flex justify-end gap-3 bg-white/10 -mx-6 -mb-6 p-6">

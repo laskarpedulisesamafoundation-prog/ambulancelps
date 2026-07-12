@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   User,
   Eye,
-  EyeOff
+  EyeOff,
+  Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -32,6 +33,7 @@ export default function UserManager({ currentUser }: UserManagerProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'staff' | 'manajer' | 'manager'>('staff');
+  const [telepon, setTelepon] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Status message states
@@ -71,6 +73,7 @@ export default function UserManager({ currentUser }: UserManagerProps) {
     setUsername('');
     setPassword('');
     setRole('staff');
+    setTelepon('');
     setError('');
     setSuccess('');
     setIsModalOpen(true);
@@ -82,6 +85,7 @@ export default function UserManager({ currentUser }: UserManagerProps) {
     setUsername(user.username);
     setPassword(user.password || '');
     setRole(user.role);
+    setTelepon(user.telepon || '');
     setError('');
     setSuccess('');
     setIsModalOpen(true);
@@ -121,6 +125,7 @@ export default function UserManager({ currentUser }: UserManagerProps) {
           username: cleanedUsername,
           password: password.trim(),
           role,
+          telepon: telepon.trim(),
         });
         setSuccess('Data pengguna berhasil diperbarui!');
       } else {
@@ -129,6 +134,7 @@ export default function UserManager({ currentUser }: UserManagerProps) {
           username: cleanedUsername,
           password: password.trim(),
           role,
+          telepon: telepon.trim(),
         });
         setSuccess('Pengguna baru berhasil ditambahkan!');
       }
@@ -232,6 +238,12 @@ export default function UserManager({ currentUser }: UserManagerProps) {
                             )}
                           </div>
                           <div className="text-xs text-slate-400">ID: {user.id}</div>
+                          {user.telepon && (
+                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
+                              <Phone className="h-3 w-3 text-slate-400" />
+                              <span>{user.telepon}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -364,6 +376,20 @@ export default function UserManager({ currentUser }: UserManagerProps) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Contoh: Muhammad Yusuf"
+                      className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all font-semibold text-slate-800 shadow-inner"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                      Nomor Telepon {role === 'staff' && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      required={role === 'staff'}
+                      value={telepon}
+                      onChange={(e) => setTelepon(e.target.value)}
+                      placeholder="Contoh: 081234567890"
                       className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all font-semibold text-slate-800 shadow-inner"
                     />
                   </div>

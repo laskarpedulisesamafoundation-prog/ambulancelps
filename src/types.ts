@@ -14,6 +14,7 @@ export interface Trip {
   id: string;
   patientId?: string;
   namaPasien: string;
+  telepon?: string; // Passenger phone number
   tujuan: string;
   tanggal: string; // YYYY-MM-DD
   supir: string;
@@ -42,6 +43,7 @@ export interface AppUser {
   password?: string; // stored in plaintext or masked for simple local security
   role: 'admin' | 'staff' | 'manajer' | 'manager';
   name: string;
+  telepon?: string; // Staff/user phone number
   createdAt: string;
 }
 

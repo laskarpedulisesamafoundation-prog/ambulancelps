@@ -219,7 +219,8 @@ export async function seedDefaultUsersIfEmpty() {
         username: 'staff',
         password: 'staff123',
         role: 'staff',
-        name: 'Staff Lapangan'
+        name: 'Staff Lapangan',
+        telepon: '081234567890'
       });
     }
   } catch (err) {

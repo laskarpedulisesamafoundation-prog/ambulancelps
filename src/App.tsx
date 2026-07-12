@@ -22,6 +22,7 @@ import {
   Shield,
   Menu,
   X,
+  Phone,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -77,11 +78,9 @@ export default function App() {
     };
   }, [currentUser]);
 
-  // Defensive routing check for staff
+  // Defensive routing check for staff (disabled to allow staff to access expenses)
   useEffect(() => {
-    if (currentUser?.role === 'staff' && activeTab === 'expenses') {
-      setActiveTab('dashboard');
-    }
+    // Staff now has access to log expenses!
   }, [activeTab, currentUser]);
 
   const handleLogout = () => {
@@ -117,11 +116,8 @@ export default function App() {
     { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
     { id: 'patients', label: 'Database Pengguna', icon: Users },
     { id: 'trips', label: 'Log Perjalanan', icon: Compass },
+    { id: 'expenses', label: 'Log Pengeluaran', icon: DollarSign },
   ];
-
-  if (currentUser.role !== 'staff') {
-    menuItems.push({ id: 'expenses', label: 'Log Pengeluaran', icon: DollarSign });
-  }
 
   if (currentUser.role === 'admin') {
     menuItems.push({ id: 'users', label: 'Manajemen Pengguna', icon: Shield });
@@ -242,7 +238,13 @@ export default function App() {
               <p className="text-xs font-bold text-slate-800 truncate leading-none">
                 {currentUser.name}
               </p>
-              <span className="text-[9px] font-semibold text-slate-500 truncate block mt-0.5 flex items-center gap-0.5">
+              {currentUser.telepon && (
+                <p className="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1 mt-1">
+                  <Phone className="h-2.5 w-2.5 text-slate-400" />
+                  <span>{currentUser.telepon}</span>
+                </p>
+              )}
+              <span className="text-[9px] font-semibold text-slate-500 truncate block mt-1 flex items-center gap-0.5">
                 <Shield className="h-2.5 w-2.5 text-red-500" />
                 <span>
                   {currentUser.role === 'admin' 

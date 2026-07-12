@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient, Trip, Expense } from '../types';
-import { addTrip } from '../dbService';
+import { addTrip, addExpense } from '../dbService';
 import {
   HeartHandshake,
   Truck,
@@ -13,6 +13,9 @@ import {
   TrendingUp,
   CheckCircle,
   Calendar,
+  Phone,
+  Tag,
+  FileText,
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,6 +34,7 @@ import { motion } from 'motion/react';
 function StaffDashboard({ patients }: { patients: Patient[] }) {
   const [patientId, setPatientId] = useState('');
   const [namaPasien, setNamaPasien] = useState('');
+  const [telepon, setTelepon] = useState('');
   const [tujuan, setTujuan] = useState('');
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [supir, setSupir] = useState('');
@@ -40,14 +44,21 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
 
+  // Expense form states
+  const [expKategori, setExpKategori] = useState<'bensin' | 'tol' | 'makan' | 'servis_ambulance' | 'lainnya'>('bensin');
+  const [expNominal, setExpNominal] = useState<any>('');
+  const [expKeterangan, setExpKeterangan] = useState('');
+
   const handlePatientSelect = (id: string) => {
     setPatientId(id);
     if (id === 'custom') {
       setNamaPasien('');
+      setTelepon('');
     } else {
       const selected = patients.find((p) => p.id === id);
       if (selected) {
         setNamaPasien(selected.nama);
+        setTelepon(selected.telepon || '');
       }
     }
   };
@@ -64,6 +75,7 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
       const payload = {
         patientId: patientId === 'custom' ? '' : patientId,
         namaPasien,
+        telepon,
         tujuan,
         tanggal,
         supir,
@@ -73,7 +85,20 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
         catatan,
       };
 
-      await addTrip(payload);
+      const createdTrip = await addTrip(payload);
+
+      // Save expense if nominal is entered!
+      if (expNominal !== '' && Number(expNominal) > 0) {
+        await addExpense({
+          tripId: createdTrip.id,
+          namaPasien: payload.namaPasien,
+          kategori: expKategori,
+          jumlah: Number(expNominal),
+          keterangan: expKeterangan || `Pengeluaran ${expKategori} untuk perjalanan ke ${payload.tujuan}`,
+          tanggal: payload.tanggal,
+        });
+      }
+
       setSuccessData(payload);
     } catch (err) {
       console.error(err);
@@ -86,12 +111,16 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
   const handleReset = () => {
     setPatientId('');
     setNamaPasien('');
+    setTelepon('');
     setTujuan('');
     setTanggal(new Date().toISOString().split('T')[0]);
     setSupir('');
     setPendamping('');
     setKmSebelum('');
     setCatatan('');
+    setExpKategori('bensin');
+    setExpNominal('');
+    setExpKeterangan('');
     setSuccessData(null);
   };
 
@@ -189,6 +218,21 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
             </div>
           )}
 
+          {/* Patient Phone Number */}
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+              Nomor Telepon Pasien / Pengguna {patientId === 'custom' && <span className="text-red-500">*</span>}
+            </label>
+            <input
+              type="text"
+              required={patientId === 'custom'}
+              value={telepon}
+              onChange={(e) => setTelepon(e.target.value)}
+              placeholder="Contoh: 081234567890"
+              className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+            />
+          </div>
+
           {/* Tanggal Perjalanan */}
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
@@ -274,6 +318,59 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
               rows={3}
               className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
             />
+          </div>
+
+          {/* Pengeluaran Terkait Section */}
+          <div className="border-t border-slate-100 pt-4 space-y-4">
+            <div className="flex items-center gap-2 text-slate-500">
+              <DollarSign className="h-4 w-4 text-slate-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider">Catat Pengeluaran Perjalanan (Opsional)</h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                  Kategori Pengeluaran
+                </label>
+                <select
+                  value={expKategori}
+                  onChange={(e) => setExpKategori(e.target.value as any)}
+                  className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner font-medium text-slate-700"
+                >
+                  <option value="bensin">Bahan Bakar (Bensin)</option>
+                  <option value="tol">Biaya Jalan Tol</option>
+                  <option value="makan">Konsumsi Crew/Supir</option>
+                  <option value="servis_ambulance">Servis / Perawatan Ambulance</option>
+                  <option value="lainnya">Lain-lain</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                  Nominal Pengeluaran (Rp)
+                </label>
+                <input
+                  type="number"
+                  value={expNominal}
+                  onChange={(e) => setExpNominal(e.target.value !== '' ? Number(e.target.value) : '')}
+                  placeholder="Contoh: 150000"
+                  className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Keterangan Detail Pengeluaran
+              </label>
+              <input
+                type="text"
+                value={expKeterangan}
+                onChange={(e) => setExpKeterangan(e.target.value)}
+                placeholder="Contoh: Pembelian bensin Pertalite 15 liter"
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
           </div>
 
           {/* Submit Button */}
