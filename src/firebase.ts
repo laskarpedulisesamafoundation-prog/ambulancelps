@@ -6,8 +6,16 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with the specific database ID from the config
-export const db = firebaseConfig.firestoreDatabaseId 
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+// If the user has changed the project to their own custom project but kept the workspace database ID "937cbe5" or "ai-studio-...",
+// it is a copy-paste mismatch. We should fallback to the default database (default).
+const isCustomProject = firebaseConfig.projectId && !firebaseConfig.projectId.includes('symmetric-structure');
+const isWorkspaceDatabaseId = firebaseConfig.firestoreDatabaseId && 
+  (firebaseConfig.firestoreDatabaseId.includes('ai-studio') || firebaseConfig.firestoreDatabaseId === '937cbe5');
+
+const dbId = (isCustomProject && isWorkspaceDatabaseId) ? undefined : firebaseConfig.firestoreDatabaseId;
+
+export const db = dbId 
+  ? getFirestore(app, dbId)
   : getFirestore(app);
 
 export const auth = getAuth(app);
