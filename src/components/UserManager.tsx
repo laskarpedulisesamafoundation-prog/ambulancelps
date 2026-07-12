@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { subscribeAppUsers, addAppUser, updateAppUser, deleteAppUser } from '../dbService';
+import { subscribeAppUsers, addAppUser, updateAppUser, deleteAppUser, clearDemoData } from '../dbService';
 import { AppUser } from '../types';
 import {
   Users,
@@ -38,6 +38,23 @@ export default function UserManager({ currentUser }: UserManagerProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [clearingDb, setClearingDb] = useState(false);
+
+  const handleClearDemoData = async () => {
+    if (confirm('Apakah Anda yakin ingin menghapus semua data pasien, perjalanan, dan pengeluaran secara permanen?\n\nTindakan ini tidak dapat dibatalkan.')) {
+      setClearingDb(true);
+      try {
+        await clearDemoData();
+        alert('Semua data demo berhasil dihapus secara permanen.');
+      } catch (err: any) {
+        console.error(err);
+        alert('Gagal membersihkan data: ' + err.message);
+      } finally {
+        setClearingDb(false);
+      }
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -270,6 +287,27 @@ export default function UserManager({ currentUser }: UserManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Database Maintenance Section */}
+      <div className="bg-red-50/40 backdrop-blur-xl border border-red-200/40 rounded-3xl p-6 shadow-xl shadow-red-100/10 space-y-4">
+        <div className="flex items-center gap-2.5 text-red-800">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <h3 className="font-bold text-base font-display">Pemeliharaan Database (Hapus Data Demo)</h3>
+        </div>
+        <p className="text-xs text-slate-600 leading-relaxed max-w-3xl font-medium">
+          Gunakan fitur ini untuk membersihkan semua data contoh atau simulasi (Pasien, Log Perjalanan, dan Pengeluaran) dari database Firebase Anda secara permanen. Akun sistem Anda dan relawan lainnya tidak akan terhapus. Tindakan ini tidak dapat dibatalkan.
+        </p>
+        <div>
+          <button
+            onClick={handleClearDemoData}
+            disabled={clearingDb}
+            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-lg shadow-red-100 transition-all flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>{clearingDb ? 'Membersihkan...' : 'Hapus Semua Data Demo Secara Permanen'}</span>
+          </button>
+        </div>
+      </div>
 
       {/* Modal User Edit/Add */}
       <AnimatePresence>

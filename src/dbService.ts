@@ -211,3 +211,25 @@ export async function seedDefaultUsersIfEmpty() {
   }
 }
 
+// Clear all demo data (patients, trips, expenses) from Firestore
+export async function clearDemoData() {
+  // Clear patients
+  const patientsSnap = await getDocs(patientsCol);
+  for (const docSnap of patientsSnap.docs) {
+    await deleteDoc(doc(db, 'patients', docSnap.id));
+  }
+
+  // Clear trips
+  const tripsSnap = await getDocs(tripsCol);
+  for (const docSnap of tripsSnap.docs) {
+    await deleteDoc(doc(db, 'trips', docSnap.id));
+  }
+
+  // Clear expenses
+  const expensesSnap = await getDocs(expensesCol);
+  for (const docSnap of expensesSnap.docs) {
+    await deleteDoc(doc(db, 'expenses', docSnap.id));
+  }
+}
+
+
