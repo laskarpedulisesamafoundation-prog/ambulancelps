@@ -38,6 +38,12 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
   const [telepon, setTelepon] = useState('');
   const [tujuan, setTujuan] = useState('');
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [jamBerangkat, setJamBerangkat] = useState(() => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  });
   const [supir, setSupir] = useState('');
   const [pendamping, setPendamping] = useState('');
   const [kmSebelum, setKmSebelum] = useState<any>('');
@@ -121,6 +127,7 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
         kmSebelum: Number(kmSebelum),
         status: 'dalam_perjalanan' as const,
         catatan,
+        jamBerangkat,
       };
 
       const createdTrip = await addTrip(payload);
@@ -206,6 +213,10 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
     setTelepon('');
     setTujuan('');
     setTanggal(new Date().toISOString().split('T')[0]);
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setJamBerangkat(`${hours}:${minutes}`);
     setSupir('');
     setPendamping('');
     setKmSebelum('');
@@ -406,6 +417,20 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
                 required
                 value={tanggal}
                 onChange={(e) => setTanggal(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
+              />
+            </div>
+
+            {/* Jam Berangkat / Jemput Pasien */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                Jam Berangkat / Jemput Pasien <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="time"
+                required
+                value={jamBerangkat}
+                onChange={(e) => setJamBerangkat(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl text-base focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all shadow-inner text-slate-800"
               />
             </div>
