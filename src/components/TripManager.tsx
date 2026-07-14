@@ -7,6 +7,7 @@ import {
   Compass,
   MapPin,
   Calendar,
+  Clock,
   User,
   Gauge,
   CheckCircle,
@@ -48,6 +49,7 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
   const [kmSesudah, setKmSesudah] = useState<any>('');
   const [status, setStatus] = useState<'dalam_perjalanan' | 'selesai' | 'batal'>('dalam_perjalanan');
   const [catatan, setCatatan] = useState('');
+  const [jamBerangkat, setJamBerangkat] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Add Trip Associated Expense states
@@ -102,6 +104,10 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
     setKmSesudah('');
     setStatus('dalam_perjalanan');
     setCatatan('');
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setJamBerangkat(`${hours}:${minutes}`);
     setAddExpKategori('bensin');
     setAddExpNominal('');
     setAddExpKeterangan('');
@@ -121,6 +127,7 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
     setKmSesudah(t.kmSesudah || '');
     setStatus(t.status);
     setCatatan(t.catatan || '');
+    setJamBerangkat(t.jamBerangkat || '');
     setIsModalOpen(true);
   };
 
@@ -155,6 +162,7 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
         kmSesudah: kmSesudah !== '' ? Number(kmSesudah) : undefined,
         status,
         catatan,
+        jamBerangkat,
       };
 
       if (editingTrip) {
@@ -370,9 +378,17 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
                             <span>{trip.telepon}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{trip.tanggal}</span>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-400 mt-1">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{trip.tanggal}</span>
+                          </div>
+                          {trip.jamBerangkat && (
+                            <div className="flex items-center gap-1 bg-blue-50/80 text-blue-700 border border-blue-200/50 px-1.5 py-0.5 rounded font-bold text-[10px]">
+                              <Clock className="h-3 w-3 text-blue-500" />
+                              <span>{trip.jamBerangkat} WIB</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -573,6 +589,19 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
                         required
                         value={tanggal}
                         onChange={(e) => setTanggal(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                        Jam Berangkat / Jemput Pasien <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        required
+                        value={jamBerangkat}
+                        onChange={(e) => setJamBerangkat(e.target.value)}
                         className="w-full px-3 py-2.5 bg-white/80 border border-white/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all shadow-inner"
                       />
                     </div>

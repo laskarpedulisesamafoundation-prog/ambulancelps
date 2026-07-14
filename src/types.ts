@@ -23,6 +23,7 @@ export interface Trip {
   kmSesudah?: number;
   status: 'dalam_perjalanan' | 'selesai' | 'batal';
   catatan?: string;
+  jamBerangkat?: string;
   createdAt: string;
 }
 

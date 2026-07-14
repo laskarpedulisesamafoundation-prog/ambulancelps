@@ -33,6 +33,7 @@
         "kmSesudah": { "type": "number" },
         "status": { "type": "string", "enum": ["dalam_perjalanan", "selesai", "batal"] },
         "catatan": { "type": "string" },
+        "jamBerangkat": { "type": "string" },
         "createdAt": { "type": "string" }
       },
       "required": ["namaPasien", "tujuan", "tanggal", "supir", "kmSebelum", "status"]
