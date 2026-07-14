@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { subscribePatients, subscribeTrips, subscribeExpenses, seedDefaultUsersIfEmpty } from './dbService';
-import { Patient, Trip, Expense, AppUser } from './types';
+import { subscribePatients, subscribeTrips, subscribeExpenses, seedDefaultUsersIfEmpty, subscribeBookings } from './dbService';
+import { Patient, Trip, Expense, AppUser, Booking } from './types';
 
 // Components
 import Auth from './components/Auth';
@@ -9,6 +9,7 @@ import PatientManager from './components/PatientManager';
 import TripManager from './components/TripManager';
 import ExpenseManager from './components/ExpenseManager';
 import UserManager from './components/UserManager';
+import BookingManager from './components/BookingManager';
 
 // Icons
 import {
@@ -23,10 +24,11 @@ import {
   Menu,
   X,
   Phone,
+  CalendarDays,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type TabType = 'dashboard' | 'patients' | 'trips' | 'expenses' | 'users';
+type TabType = 'dashboard' | 'patients' | 'bookings' | 'trips' | 'expenses' | 'users';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
@@ -38,6 +40,7 @@ export default function App() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   // 1. Listen to Authentication State (from localStorage)
   useEffect(() => {
@@ -70,11 +73,13 @@ export default function App() {
     const unsubPatients = subscribePatients((data) => setPatients(data));
     const unsubTrips = subscribeTrips((data) => setTrips(data));
     const unsubExpenses = subscribeExpenses((data) => setExpenses(data));
+    const unsubBookings = subscribeBookings((data) => setBookings(data));
 
     return () => {
       unsubPatients();
       unsubTrips();
       unsubExpenses();
+      unsubBookings();
     };
   }, [currentUser]);
 
@@ -115,6 +120,7 @@ export default function App() {
   const menuItems = [
     { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
     { id: 'patients', label: 'Database Pengguna', icon: Users },
+    { id: 'bookings', label: 'Daftar Pesanan', icon: CalendarDays },
     { id: 'trips', label: 'Log Perjalanan', icon: Compass },
     { id: 'expenses', label: 'Log Pengeluaran', icon: DollarSign },
   ];
@@ -222,6 +228,11 @@ export default function App() {
                       {trips.filter((t) => t.status === 'dalam_perjalanan').length}
                     </span>
                   )}
+                  {item.id === 'bookings' && bookings.filter((b) => b.status === 'menunggu').length > 0 && (
+                    <span className="ml-auto bg-blue-500 text-white font-black text-[10px] px-1.5 py-0.5 rounded-full">
+                      {bookings.filter((b) => b.status === 'menunggu').length}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -282,16 +293,20 @@ export default function App() {
                 patients={patients}
                 trips={trips}
                 expenses={expenses}
+                bookings={bookings}
                 onNavigate={(tab) => setActiveTab(tab)}
                 userRole={currentUser.role}
               />
             )}
             {activeTab === 'patients' && <PatientManager patients={patients} />}
+            {activeTab === 'bookings' && (
+              <BookingManager bookings={bookings} patients={patients} userRole={currentUser.role} />
+            )}
             {activeTab === 'trips' && (
               <TripManager trips={trips} patients={patients} userRole={currentUser.role} />
             )}
             {activeTab === 'expenses' && currentUser.role !== 'staff' && (
-              <ExpenseManager expenses={expenses} trips={trips} />
+              <ExpenseManager expenses={expenses} trips={trips} userRole={currentUser.role} />
             )}
             {activeTab === 'users' && currentUser.role === 'admin' && (
               <UserManager currentUser={currentUser} />

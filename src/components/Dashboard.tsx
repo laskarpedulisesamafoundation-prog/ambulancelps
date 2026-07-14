@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Patient, Trip, Expense } from '../types';
+import { Patient, Trip, Expense, Booking } from '../types';
 import { addTrip, addExpense } from '../dbService';
 import {
   HeartHandshake,
@@ -741,11 +741,12 @@ interface DashboardProps {
   patients: Patient[];
   trips: Trip[];
   expenses: Expense[];
-  onNavigate: (tab: 'patients' | 'trips' | 'expenses') => void;
+  bookings?: Booking[];
+  onNavigate: (tab: 'patients' | 'bookings' | 'trips' | 'expenses') => void;
   userRole?: string;
 }
 
-export default function Dashboard({ patients, trips, expenses, onNavigate, userRole }: DashboardProps) {
+export default function Dashboard({ patients, trips, expenses, bookings = [], onNavigate, userRole }: DashboardProps) {
   if (userRole === 'staff') {
     return <StaffDashboard patients={patients} />;
   }
@@ -765,9 +766,14 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
     ? expenses
     : expenses.filter(e => e.tanggal && e.tanggal.substring(0, 7) === selectedPeriod);
 
+  const filteredBookings = selectedPeriod === 'all'
+    ? bookings
+    : bookings.filter(b => b.tanggalPerjalanan && b.tanggalPerjalanan.substring(0, 7) === selectedPeriod);
+
   // 1. Calculate general stats
   const totalPatients = filteredPatients.length;
   const activeTripsCount = filteredTrips.filter((t) => t.status === 'dalam_perjalanan').length;
+  const bookingsPendingCount = filteredBookings.filter((b) => b.status === 'menunggu').length;
 
   const totalKm = filteredTrips
     .filter((t) => t.status === 'selesai' && t.kmSesudah)
@@ -859,6 +865,12 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
       date: e.createdAt,
       color: 'bg-red-50 text-red-600',
     })),
+    ...bookings.map((b) => ({
+      type: 'pesanan',
+      title: `Booking Ambulance: ${b.namaPasien} ke ${b.tujuan} (${b.tanggalPerjalanan})`,
+      date: b.createdAt,
+      color: 'bg-indigo-50 text-indigo-600',
+    })),
   ]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 6);
@@ -942,7 +954,7 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
       )}
 
       {/* Main stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <motion.div
           whileHover={{ y: -3 }}
           className="bg-white/50 backdrop-blur-xl p-5 rounded-3xl border border-white/50 shadow-xl shadow-slate-200/50 flex items-center justify-between cursor-pointer"
@@ -950,14 +962,32 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
         >
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Database Pengguna</div>
-            <div className="text-2xl font-black text-slate-800 mt-1 font-display">{totalPatients} Jiwa</div>
-            <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+            <div className="text-xl font-black text-slate-800 mt-1 font-display">{totalPatients} Jiwa</div>
+            <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
               <span>Terbuka & Terdaftar</span>
             </div>
           </div>
-          <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl shadow-sm">
-            <Users className="h-6 w-6" />
+          <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shadow-sm">
+            <Users className="h-5 w-5" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ y: -3 }}
+          className="bg-white/50 backdrop-blur-xl p-5 rounded-3xl border border-white/50 shadow-xl shadow-slate-200/50 flex items-center justify-between cursor-pointer"
+          onClick={() => onNavigate('bookings')}
+        >
+          <div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Antrean Pesanan</div>
+            <div className="text-xl font-black text-slate-800 mt-1 font-display">{bookingsPendingCount} Booking</div>
+            <div className="text-[10px] text-indigo-600 font-bold mt-1 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+              <span>Menunggu Jemput</span>
+            </div>
+          </div>
+          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl shadow-sm">
+            <Calendar className="h-5 w-5" />
           </div>
         </motion.div>
 
@@ -968,16 +998,16 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
         >
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Perjalanan Aktif</div>
-            <div className="text-2xl font-black text-slate-800 mt-1 font-display">
-              {activeTripsCount} Operasional
+            <div className="text-xl font-black text-slate-800 mt-1 font-display">
+              {activeTripsCount} Armada
             </div>
-            <div className="text-[11px] text-amber-600 font-bold mt-1 flex items-center gap-1">
+            <div className="text-[10px] text-amber-600 font-bold mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping"></span>
               <span>Di Jalan Raya</span>
             </div>
           </div>
-          <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl shadow-sm">
-            <Truck className="h-6 w-6" />
+          <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl shadow-sm">
+            <Truck className="h-5 w-5" />
           </div>
         </motion.div>
 
@@ -988,16 +1018,16 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
         >
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Jarak Tempuh</div>
-            <div className="text-2xl font-black text-slate-800 mt-1 font-display">
+            <div className="text-xl font-black text-slate-800 mt-1 font-display">
               {totalKm.toLocaleString('id-ID')} KM
             </div>
-            <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+            <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-emerald-500" />
-              <span>Berdasarkan Odometer</span>
+              <span>Odometer Selesai</span>
             </div>
           </div>
-          <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl shadow-sm">
-            <Compass className="h-6 w-6" />
+          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shadow-sm">
+            <Compass className="h-5 w-5" />
           </div>
         </motion.div>
 
@@ -1008,15 +1038,15 @@ export default function Dashboard({ patients, trips, expenses, onNavigate, userR
         >
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Dana Operasional</div>
-            <div className="text-2xl font-black text-red-600 mt-1 font-display">
+            <div className="text-xl font-black text-red-600 mt-1 font-display">
               {formatIDR(totalExpenseAmount)}
             </div>
-            <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-              <span className="font-semibold text-slate-700">bensin, tol & perawatan</span>
+            <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+              <span className="font-semibold text-slate-700">Operasional Bulan Ini</span>
             </div>
           </div>
-          <div className="p-4 bg-red-100 text-red-600 rounded-2xl shadow-sm">
-            <DollarSign className="h-6 w-6" />
+          <div className="p-3 bg-red-100 text-red-600 rounded-2xl shadow-sm">
+            <DollarSign className="h-5 w-5" />
           </div>
         </motion.div>
       </div>

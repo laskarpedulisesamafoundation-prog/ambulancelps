@@ -11,13 +11,14 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Patient, Trip, Expense, AppUser } from './types';
+import { Patient, Trip, Expense, AppUser, Booking } from './types';
 
 // Collection references
 const patientsCol = collection(db, 'patients');
 const tripsCol = collection(db, 'trips');
 const expensesCol = collection(db, 'expenses');
 const appUsersCol = collection(db, 'app_users');
+const bookingsCol = collection(db, 'bookings');
 
 // ==========================================
 // PATIENT (PENGGUNA) SERVICES
@@ -162,6 +163,48 @@ export async function deleteExpense(id: string) {
 }
 
 // ==========================================
+// BOOKING (PESANAN AMBULANCE) SERVICES
+// ==========================================
+
+export function subscribeBookings(callback: (bookings: Booking[]) => void) {
+  const q = query(bookingsCol, orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: Booking[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+      });
+      callback(list);
+    },
+    (error) => {
+      console.error('Error subscribing to bookings:', error);
+    }
+  );
+}
+
+export async function addBooking(booking: Omit<Booking, 'id' | 'createdAt'>) {
+  const newId = doc(bookingsCol).id;
+  const data: Booking = {
+    ...booking,
+    id: newId,
+    createdAt: new Date().toISOString(),
+  };
+  await setDoc(doc(db, 'bookings', newId), cleanUndefined(data));
+  return data;
+}
+
+export async function updateBooking(id: string, updates: Partial<Omit<Booking, 'id' | 'createdAt'>>) {
+  const ref = doc(db, 'bookings', id);
+  await updateDoc(ref, cleanUndefined(updates));
+}
+
+export async function deleteBooking(id: string) {
+  const ref = doc(db, 'bookings', id);
+  await deleteDoc(ref);
+}
+
+// ==========================================
 // APP USER (PENGGUNA SYSTEM) SERVICES
 // ==========================================
 
@@ -246,6 +289,12 @@ export async function clearDemoData() {
   const expensesSnap = await getDocs(expensesCol);
   for (const docSnap of expensesSnap.docs) {
     await deleteDoc(doc(db, 'expenses', docSnap.id));
+  }
+
+  // Clear bookings
+  const bookingsSnap = await getDocs(bookingsCol);
+  for (const docSnap of bookingsSnap.docs) {
+    await deleteDoc(doc(db, 'bookings', docSnap.id));
   }
 }
 

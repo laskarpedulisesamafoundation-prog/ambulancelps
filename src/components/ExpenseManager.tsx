@@ -19,11 +19,13 @@ import { motion, AnimatePresence } from 'motion/react';
 interface ExpenseManagerProps {
   expenses: Expense[];
   trips: Trip[];
+  userRole?: string;
 }
 
-export default function ExpenseManager({ expenses, trips }: ExpenseManagerProps) {
+export default function ExpenseManager({ expenses, trips, userRole }: ExpenseManagerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('semua');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -44,7 +46,14 @@ export default function ExpenseManager({ expenses, trips }: ExpenseManagerProps)
     }).format(num);
   };
 
-  const filteredExpenses = expenses.filter((exp) => {
+  const periodFilteredExpenses = expenses.filter((exp) => {
+    if (userRole === 'admin' && selectedPeriod !== 'all') {
+      return exp.tanggal && exp.tanggal.substring(0, 7) === selectedPeriod;
+    }
+    return true;
+  });
+
+  const filteredExpenses = periodFilteredExpenses.filter((exp) => {
     const term = searchTerm.toLowerCase();
     const matchSearch =
       exp.keterangan.toLowerCase().includes(term) ||
@@ -156,6 +165,43 @@ export default function ExpenseManager({ expenses, trips }: ExpenseManagerProps)
         </button>
       </div>
 
+      {/* Periode Laporan (Hanya untuk Role Admin) */}
+      {userRole === 'admin' && (
+        <div className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-3xl p-5 shadow-xl shadow-slate-200/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-red-50 text-red-600 rounded-2xl border border-red-100">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 font-display">Periode Laporan Bulanan</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Saring semua data pengeluaran dan total statistik operasional</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+            <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Pilih Bulan & Tahun (2026):</span>
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="w-full sm:w-48 px-3.5 py-2.5 bg-white border border-slate-200/80 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-400/50 transition-all text-slate-700 shadow-sm"
+            >
+              <option value="all">Semua (Seluruh Periode)</option>
+              <option value="2026-01">Januari 2026</option>
+              <option value="2026-02">Februari 2026</option>
+              <option value="2026-03">Maret 2026</option>
+              <option value="2026-04">April 2026</option>
+              <option value="2026-05">Mei 2026</option>
+              <option value="2026-06">Juni 2026</option>
+              <option value="2026-07">Juli 2026</option>
+              <option value="2026-08">Agustus 2026</option>
+              <option value="2026-09">September 2026</option>
+              <option value="2026-10">Oktober 2026</option>
+              <option value="2026-11">November 2026</option>
+              <option value="2026-12">Desember 2026</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Stats Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white/50 backdrop-blur-xl p-5 rounded-2xl border border-white/50 shadow-xl shadow-slate-200/50 flex items-center justify-between">
@@ -174,7 +220,7 @@ export default function ExpenseManager({ expenses, trips }: ExpenseManagerProps)
           <div>
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Khusus Bensin</div>
             <div className="text-2xl font-black text-amber-600 mt-1">
-              {formatIDR(expenses.filter((e) => e.kategori === 'bensin').reduce((a, c) => a + c.jumlah, 0))}
+              {formatIDR(periodFilteredExpenses.filter((e) => e.kategori === 'bensin').reduce((a, c) => a + c.jumlah, 0))}
             </div>
           </div>
           <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
@@ -186,7 +232,7 @@ export default function ExpenseManager({ expenses, trips }: ExpenseManagerProps)
           <div>
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Servis & Perawatan</div>
             <div className="text-2xl font-black text-blue-600 mt-1">
-              {formatIDR(expenses.filter((e) => e.kategori === 'servis_ambulance').reduce((a, c) => a + c.jumlah, 0))}
+              {formatIDR(periodFilteredExpenses.filter((e) => e.kategori === 'servis_ambulance').reduce((a, c) => a + c.jumlah, 0))}
             </div>
           </div>
           <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">

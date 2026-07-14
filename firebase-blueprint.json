@@ -52,6 +52,26 @@
         "createdAt": { "type": "string" }
       },
       "required": ["kategori", "jumlah", "keterangan", "tanggal"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Ambulance booking and pick-up orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "namaPasien": { "type": "string" },
+        "telepon": { "type": "string" },
+        "alamatPenjemputan": { "type": "string" },
+        "tujuan": { "type": "string" },
+        "tanggalPerjalanan": { "type": "string" },
+        "jamJemput": { "type": "string" },
+        "jamPemesanan": { "type": "string" },
+        "keterangan": { "type": "string" },
+        "status": { "type": "string", "enum": ["menunggu", "disetujui", "selesai", "batal"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["namaPasien", "alamatPenjemputan", "tujuan", "tanggalPerjalanan", "jamJemput", "status"]
     }
   },
   "firestore": {
@@ -66,6 +86,10 @@
     "expenses": {
       "schema": "Expense",
       "description": "Collection of operational expenses"
+    },
+    "bookings": {
+      "schema": "Booking",
+      "description": "Collection of ambulance bookings"
     }
   }
 }

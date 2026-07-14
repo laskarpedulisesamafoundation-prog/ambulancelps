@@ -48,3 +48,19 @@ export interface AppUser {
   createdAt: string;
 }
 
+export interface Booking {
+  id: string;
+  patientId?: string;
+  namaPasien: string;
+  telepon?: string;
+  alamatPenjemputan: string;
+  tujuan: string;
+  tanggalPerjalanan: string; // YYYY-MM-DD
+  jamJemput: string; // HH:MM
+  jamPemesanan?: string; // HH:MM (Order time / creation time)
+  keterangan?: string;
+  status: 'menunggu' | 'disetujui' | 'selesai' | 'batal';
+  createdAt: string;
+}
+
+
