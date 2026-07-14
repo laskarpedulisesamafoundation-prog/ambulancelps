@@ -58,6 +58,8 @@ export interface Booking {
   tanggalPerjalanan: string; // YYYY-MM-DD
   jamJemput: string; // HH:MM
   jamPemesanan?: string; // HH:MM (Order time / creation time)
+  namaPemesan?: string;
+  hubunganPasien?: string;
   keterangan?: string;
   status: 'menunggu' | 'disetujui' | 'selesai' | 'batal';
   createdAt: string;

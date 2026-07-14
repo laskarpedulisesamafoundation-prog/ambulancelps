@@ -45,6 +45,8 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
   const [patientId, setPatientId] = useState('');
   const [namaPasien, setNamaPasien] = useState('');
   const [telepon, setTelepon] = useState('');
+  const [namaPemesan, setNamaPemesan] = useState('');
+  const [hubunganPasien, setHubunganPasien] = useState('');
   const [alamatPenjemputan, setAlamatPenjemputan] = useState('');
   const [tujuan, setTujuan] = useState('');
   const [tanggalPerjalanan, setTanggalPerjalanan] = useState(new Date().toISOString().split('T')[0]);
@@ -99,6 +101,8 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
     setPatientId('');
     setNamaPasien('');
     setTelepon('');
+    setNamaPemesan('');
+    setHubunganPasien('');
     setAlamatPenjemputan('');
     setTujuan('');
     setTanggalPerjalanan(new Date().toISOString().split('T')[0]);
@@ -118,6 +122,8 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
     setPatientId(b.patientId || '');
     setNamaPasien(b.namaPasien);
     setTelepon(b.telepon || '');
+    setNamaPemesan(b.namaPemesan || '');
+    setHubunganPasien(b.hubunganPasien || '');
     setAlamatPenjemputan(b.alamatPenjemputan);
     setTujuan(b.tujuan);
     setTanggalPerjalanan(b.tanggalPerjalanan);
@@ -148,6 +154,8 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
         patientId: patientId || undefined,
         namaPasien,
         telepon: telepon || undefined,
+        namaPemesan: namaPemesan || undefined,
+        hubunganPasien: hubunganPasien || undefined,
         alamatPenjemputan,
         tujuan,
         tanggalPerjalanan,
@@ -353,6 +361,13 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
                     ) : (
                       <p className="text-[10px] text-slate-400 mt-1 leading-none italic">Tidak ada telepon</p>
                     )}
+                    {(b.namaPemesan || b.hubunganPasien) && (
+                      <p className="text-[10px] text-indigo-600 font-semibold mt-1 flex items-center gap-1 leading-none">
+                        <span>Pemesan:</span>
+                        <span className="font-bold">{b.namaPemesan || '-'}</span>
+                        {b.hubunganPasien && <span className="text-slate-400">({b.hubunganPasien})</span>}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -513,6 +528,34 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
                   />
                 </div>
 
+                {/* Pemesan Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                      NAMA PEMESAN
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Pak Budi"
+                      value={namaPemesan}
+                      onChange={(e) => setNamaPemesan(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
+                      HUBUNGAN DENGAN PASIEN
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Anak Kandung, Suami, dll"
+                      value={hubunganPasien}
+                      onChange={(e) => setHubunganPasien(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 shadow-sm"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   {/* Tanggal Perjalanan */}
                   <div>
@@ -571,23 +614,6 @@ export default function BookingManager({ bookings, patients, userRole }: Booking
                     onChange={(e) => setTujuan(e.target.value)}
                     className="w-full px-3 py-2.5 bg-white border border-slate-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 shadow-sm"
                   />
-                </div>
-
-                {/* Status Booking */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase px-1 mb-1">
-                    STATUS BOOKING / PESANAN
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e: any) => setStatus(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 shadow-sm font-bold"
-                  >
-                    <option value="menunggu">Menunggu Penjemputan</option>
-                    <option value="disetujui">Disetujui / Jalan</option>
-                    <option value="selesai">Selesai Diantar</option>
-                    <option value="batal">Dibatalkan</option>
-                  </select>
                 </div>
 
                 {/* Keterangan */}
