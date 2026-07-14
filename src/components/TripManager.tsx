@@ -260,15 +260,13 @@ export default function TripManager({ trips, patients, userRole }: TripManagerPr
             Catat dan monitor pergerakan ambulance, odometer awal/akhir, supir, serta tujuan darurat.
           </p>
         </div>
-        {userRole !== 'staff' && (
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-200 shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Berangkatkan Ambulance</span>
-          </button>
-        )}
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-blue-200 shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Berangkatkan Ambulance</span>
+        </button>
       </div>
 
       {/* Stats Quick Summary */}
