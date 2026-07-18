@@ -279,7 +279,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Pane */}
-      <main className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 overflow-hidden ${currentUser.role === 'staff' ? 'pb-24 md:pb-8' : ''}`}>
+      <main className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full relative z-10 ${currentUser.role === 'staff' ? 'pb-24 md:pb-8' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
