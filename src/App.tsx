@@ -180,7 +180,7 @@ export default function App() {
       <aside
         className={`fixed inset-y-0 left-0 transform ${
           mobileMenuOpen && currentUser.role !== 'staff' ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 md:static transition-transform duration-300 ease-in-out z-30 w-64 bg-white/40 backdrop-blur-2xl border-r border-white/40 flex flex-col justify-between shadow-lg md:shadow-none h-full relative`}
+        } md:translate-x-0 md:static transition-transform duration-300 ease-in-out z-30 w-64 bg-white/40 backdrop-blur-2xl border-r border-white/40 flex flex-col justify-between shadow-lg md:shadow-none h-full md:relative`}
       >
         <div className="flex flex-col flex-grow">
           {/* Brand Logo */}
