@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient, Trip, Expense, Booking } from '../types';
-import { addTrip, addExpense } from '../dbService';
+import { addTrip, addExpense, updateBooking } from '../dbService';
 import {
   HeartHandshake,
   Truck,
@@ -32,7 +32,7 @@ import {
 } from 'recharts';
 import { motion } from 'motion/react';
 
-function StaffDashboard({ patients }: { patients: Patient[] }) {
+function StaffDashboard({ patients, bookings = [] }: { patients: Patient[]; bookings?: Booking[] }) {
   const [patientId, setPatientId] = useState('');
   const [namaPasien, setNamaPasien] = useState('');
   const [telepon, setTelepon] = useState('');
@@ -50,6 +50,45 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
   const [catatan, setCatatan] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<any>(null);
+
+  // Selected Booking state for autofill
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+
+  const handleSelectBooking = (b: Booking) => {
+    setSelectedBookingId(b.id || null);
+    setStaffTab('perjalanan');
+    
+    if (b.patientId) {
+      setPatientId(b.patientId);
+    } else {
+      setPatientId('custom');
+    }
+    setNamaPasien(b.namaPasien);
+    setTelepon(b.telepon || '');
+    setTujuan(b.tujuan);
+    setTanggal(b.tanggalPerjalanan);
+    setJamBerangkat(b.jamJemput);
+    
+    const pickupDetail = `Alamat Penjemputan: ${b.alamatPenjemputan}`;
+    const orderDetail = b.namaPemesan ? `Pemesan: ${b.namaPemesan} (${b.hubunganPasien || '-'})` : '';
+    const noteDetail = b.keterangan ? `Catatan Booking: ${b.keterangan}` : '';
+    const combinedNotes = [pickupDetail, orderDetail, noteDetail].filter(Boolean).join('\n');
+    setCatatan(combinedNotes);
+  };
+
+  const handleClearSelectedBooking = () => {
+    setSelectedBookingId(null);
+    setPatientId('');
+    setNamaPasien('');
+    setTelepon('');
+    setTujuan('');
+    setTanggal(new Date().toISOString().split('T')[0]);
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setJamBerangkat(`${hours}:${minutes}`);
+    setCatatan('');
+  };
 
   // Active tab inside Staff Dashboard:
   // 'perjalanan' (ambulance trip registration + optional expenses list with Add/Remove)
@@ -131,6 +170,12 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
       };
 
       const createdTrip = await addTrip(payload);
+
+      // If a booking is selected, update its status to 'selesai'
+      if (selectedBookingId) {
+        await updateBooking(selectedBookingId, { status: 'selesai' });
+        setSelectedBookingId(null);
+      }
 
       // Save trip-associated expenses
       let savedCount = 0;
@@ -224,6 +269,7 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
     setTripExpenses([]);
     setStandaloneExpenses([{ kategori: 'bensin', jumlah: '', keterangan: '' }]);
     setStandaloneTanggal(new Date().toISOString().split('T')[0]);
+    setSelectedBookingId(null);
     setSuccessData(null);
   };
 
@@ -309,8 +355,114 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
     );
   }
 
+  const todayStr = (() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  })();
+
+  const todayBookings = bookings.filter(
+    (b) => b.tanggalPerjalanan === todayStr && (b.status === 'menunggu' || b.status === 'disetujui')
+  );
+
   return (
     <div className="max-w-md mx-auto space-y-6">
+      {/* Jadwal Pengantaran Hari Ini */}
+      {todayBookings.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider font-display flex items-center gap-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+              Jadwal Pengantaran Hari Ini
+            </h2>
+            <span className="text-xs bg-indigo-50 text-indigo-600 font-extrabold px-2.5 py-1 rounded-full border border-indigo-100">
+              {todayBookings.length} Pesanan
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {todayBookings.map((b) => {
+              const isSelected = selectedBookingId === b.id;
+              return (
+                <motion.div
+                  key={b.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleSelectBooking(b)}
+                  className={`p-4 rounded-3xl border transition-all cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? 'bg-indigo-50/90 border-indigo-300 shadow-md shadow-indigo-100/50'
+                      : 'bg-white border-slate-100 hover:border-slate-200 shadow-md shadow-slate-100/40'
+                  }`}
+                >
+                  {/* Accent decor line */}
+                  <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-indigo-500" />
+
+                  <div className="pl-2.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-800 leading-none">
+                        {b.namaPasien}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        {b.telepon && (
+                          <a
+                            href={`tel:${b.telepon}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center justify-center p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+                            title="Hubungi Pasien"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        <span className="text-[10px] font-mono font-extrabold text-indigo-600 bg-indigo-100/60 px-2 py-0.5 rounded-md leading-none">
+                          {b.jamJemput} WIB
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 space-y-1 text-xs text-slate-500">
+                      <div className="flex items-start gap-1.5">
+                        <span className="font-semibold text-slate-400 min-w-[50px] text-[10px] uppercase mt-0.5">Jemput:</span>
+                        <span className="text-slate-600 font-medium line-clamp-1">{b.alamatPenjemputan}</span>
+                      </div>
+                      <div className="flex items-start gap-1.5">
+                        <span className="font-semibold text-slate-400 min-w-[50px] text-[10px] uppercase mt-0.5">Tujuan:</span>
+                        <span className="text-slate-700 font-bold line-clamp-1">{b.tujuan}</span>
+                      </div>
+                      {b.namaPemesan && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-indigo-500 font-semibold mt-1">
+                          <span>Pemesan: {b.namaPemesan} {b.hubunganPasien ? `(${b.hubunganPasien})` : ''}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {isSelected && (
+                      <div className="mt-3 flex items-center justify-between bg-indigo-100/50 -mx-4 -mb-4 px-4 py-2 border-t border-indigo-200/40">
+                        <span className="text-[10px] font-bold text-indigo-700">✓ Booking Terpilih</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearSelectedBooking();
+                          }}
+                          className="text-[10px] font-extrabold text-red-600 hover:text-red-700 px-2 py-1 bg-white border border-red-200/50 rounded-lg shadow-sm"
+                        >
+                          Batal Pilih
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Header card with dual tabs */}
       <div className="bg-red-600 text-white p-5 rounded-3xl shadow-lg shadow-red-100 space-y-4">
         <div className="flex items-center gap-3">
@@ -355,6 +507,26 @@ function StaffDashboard({ patients }: { patients: Patient[] }) {
       <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-5">
         {staffTab === 'perjalanan' ? (
           <form onSubmit={handleSubmitTrip} className="space-y-4">
+            {selectedBookingId && (
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3.5 mb-2 flex items-start gap-2.5">
+                <AlertCircle className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
+                <div className="space-y-1 w-full">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-indigo-800">Mengisi Data Booking Aktif</p>
+                    <button
+                      type="button"
+                      onClick={handleClearSelectedBooking}
+                      className="text-[10px] font-black text-red-600 hover:text-red-700 underline"
+                    >
+                      Batal Pilih
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-indigo-600 leading-normal">
+                    Formulir telah diisi otomatis. Silakan lengkapi odometer awal, supir, dan pengeluaran tambahan jika ada.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Choose Patient dropdown */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
@@ -748,7 +920,7 @@ interface DashboardProps {
 
 export default function Dashboard({ patients, trips, expenses, bookings = [], onNavigate, userRole }: DashboardProps) {
   if (userRole === 'staff') {
-    return <StaffDashboard patients={patients} />;
+    return <StaffDashboard patients={patients} bookings={bookings} />;
   }
 
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
